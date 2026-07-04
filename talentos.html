@@ -389,6 +389,9 @@ footer.site-footer .grid{margin-bottom:32px;}
             <div><label>Oferece alojamento</label><select id="vaga-alojamento"><option value="true">Sim</option><option value="false">Nao</option></select></div>
             <div><label>Exige viagem</label><select id="vaga-viagem"><option value="true">Sim</option><option value="false">Nao</option></select></div>
           </div>
+          <label>Imagem (opcional)</label>
+          <input type="file" id="vaga-imagem" accept="image/*">
+          <p class="hint" id="vaga-imagem-status"></p>
           <div id="vaga-msg"></div>
           <div style="margin-top:20px;display:flex;gap:10px;">
             <button type="submit" class="btn btn-primary">Publicar vaga</button>
@@ -398,8 +401,8 @@ footer.site-footer .grid{margin-bottom:32px;}
       </div>
 
       <table class="data-table">
-        <thead><tr><th>Funcao</th><th>Municipio / UF</th><th>Alojamento</th><th>Retorno ate</th><th>Status</th></tr></thead>
-        <tbody id="vagas-tbody"><tr><td colspan="5">Carregando...</td></tr></tbody>
+        <thead><tr><th></th><th>Funcao</th><th>Municipio / UF</th><th>Alojamento</th><th>Retorno ate</th><th>Status</th></tr></thead>
+        <tbody id="vagas-tbody"><tr><td colspan="6">Carregando...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -439,15 +442,16 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   async function renderVagas(){
     const tbody = document.getElementById('vagas-tbody');
-    tbody.innerHTML = '<tr><td colspan="5">Carregando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Carregando...</td></tr>';
     const list = await csListVagas();
     tbody.innerHTML = '';
-    if(list.length === 0){ tbody.innerHTML = '<tr><td colspan="5">Nenhuma vaga publicada.</td></tr>'; return; }
+    if(list.length === 0){ tbody.innerHTML = '<tr><td colspan="6">Nenhuma vaga publicada.</td></tr>'; return; }
     list.forEach(v => {
       const badge = v.status === 'ativa' ? '<span class="badge badge-ativo">Ativa</span>' : '<span class="badge badge-finalizado">'+v.status+'</span>';
       const nomeFuncao = v.funcoes_catalogo ? v.funcoes_catalogo.nome : v.funcao_codigo;
+      const thumb = v.imagem_url ? `<img src="${v.imagem_url}" style="width:48px;height:48px;object-fit:cover;border-radius:var(--radius-sm);">` : '';
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${nomeFuncao}</td><td>${v.cidade} / ${v.estado}</td><td>${v.oferece_alojamento ? 'Sim' : 'Nao'}</td><td>${v.data_limite}</td><td>${badge}</td>`;
+      tr.innerHTML = `<td>${thumb}</td><td>${nomeFuncao}</td><td>${v.cidade} / ${v.estado}</td><td>${v.oferece_alojamento ? 'Sim' : 'Nao'}</td><td>${v.data_limite}</td><td>${badge}</td>`;
       tbody.appendChild(tr);
     });
   }
@@ -495,17 +499,29 @@ document.addEventListener('DOMContentLoaded', async function(){
     e.preventDefault();
     const msg = document.getElementById('vaga-msg');
     if(!(await csIsLogged())){ window.location.href = 'usuarios.html#cadastro'; return; }
+    const user = await csGetUser();
+    let imagemUrl = null;
+    const imgFile = document.getElementById('vaga-imagem').files[0];
+    if(imgFile){
+      document.getElementById('vaga-imagem-status').textContent = 'Enviando imagem...';
+      const up = await csUploadImagemVaga(user.id, imgFile);
+      if(!up.ok){ msg.innerHTML = '<div class="notice">Erro ao enviar imagem: '+up.error+'</div>'; return; }
+      imagemUrl = up.url;
+      document.getElementById('vaga-imagem-status').textContent = 'Imagem enviada.';
+    }
     const res = await csCreateVaga({
       funcao_codigo: document.getElementById('vaga-funcao').value,
       estado: document.getElementById('vaga-uf').value,
       cidade: document.getElementById('vaga-cidade').value,
       data_limite: document.getElementById('vaga-data-limite').value,
       oferece_alojamento: document.getElementById('vaga-alojamento').value === 'true',
-      exige_viagem: document.getElementById('vaga-viagem').value === 'true'
+      exige_viagem: document.getElementById('vaga-viagem').value === 'true',
+      imagem_url: imagemUrl
     });
     if(!res.ok){ msg.innerHTML = '<div class="notice">Erro: '+res.error+' (e preciso ser empresa com KYC validado)</div>'; return; }
     formVaga.style.display = 'none';
     this.reset();
+    document.getElementById('vaga-imagem-status').textContent = '';
     renderVagas();
     alert('Vaga publicada com sucesso.');
   });
@@ -591,7 +607,15 @@ function csNormalizeTelefone(t){
   return (t || '').replace(/\D/g, '');
 }
 
-async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, telefone}){
+async function csUploadFotoPerfil(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('perfis-fotos').upload(path, file);
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('perfis-fotos').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
+async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, telefone, fotoFile}){
   const telefoneNorm = csNormalizeTelefone(telefone);
   const { data, error } = await csClient.auth.signUp({
     email, password,
@@ -600,11 +624,17 @@ async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, tel
   if(error) return { ok:false, error: error.message };
 
   if(data.session && data.user){
+    let fotoUrl = null;
+    if(fotoFile){
+      const up = await csUploadFotoPerfil(data.user.id, fotoFile);
+      if(up.ok) fotoUrl = up.url;
+    }
     const { error: errProfile } = await csClient.from('profiles').update({
       estado, cidade, telefone: telefoneNorm,
+      ...(fotoUrl ? { foto_url: fotoUrl } : {}),
       aceite_termos_versao: 'v1', aceite_termos_em: new Date().toISOString()
     }).eq('id', data.user.id);
-    if(errProfile) return { ok:false, error: 'Cadastro criado, mas houve erro ao salvar telefone/cidade: ' + errProfile.message };
+    if(errProfile) return { ok:false, error: 'Cadastro criado, mas houve erro ao salvar dados do perfil: ' + errProfile.message };
     return { ok:true, needsEmailConfirm:false };
   }
   return { ok:true, needsEmailConfirm:true };
@@ -752,6 +782,14 @@ async function csListVagas({uf} = {}){
   return data;
 }
 
+async function csUploadImagemVaga(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('vagas-fotos').upload(path, file);
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('vagas-fotos').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
 async function csCreateVaga(fields){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
@@ -886,7 +924,8 @@ document.addEventListener('DOMContentLoaded', async function(){
       const profile = await csGetMyProfile();
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm"><i class="ti ti-user"></i> ' + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
+      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }

@@ -495,7 +495,15 @@ function csNormalizeTelefone(t){
   return (t || '').replace(/\D/g, '');
 }
 
-async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, telefone}){
+async function csUploadFotoPerfil(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('perfis-fotos').upload(path, file);
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('perfis-fotos').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
+async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, telefone, fotoFile}){
   const telefoneNorm = csNormalizeTelefone(telefone);
   const { data, error } = await csClient.auth.signUp({
     email, password,
@@ -504,11 +512,17 @@ async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, tel
   if(error) return { ok:false, error: error.message };
 
   if(data.session && data.user){
+    let fotoUrl = null;
+    if(fotoFile){
+      const up = await csUploadFotoPerfil(data.user.id, fotoFile);
+      if(up.ok) fotoUrl = up.url;
+    }
     const { error: errProfile } = await csClient.from('profiles').update({
       estado, cidade, telefone: telefoneNorm,
+      ...(fotoUrl ? { foto_url: fotoUrl } : {}),
       aceite_termos_versao: 'v1', aceite_termos_em: new Date().toISOString()
     }).eq('id', data.user.id);
-    if(errProfile) return { ok:false, error: 'Cadastro criado, mas houve erro ao salvar telefone/cidade: ' + errProfile.message };
+    if(errProfile) return { ok:false, error: 'Cadastro criado, mas houve erro ao salvar dados do perfil: ' + errProfile.message };
     return { ok:true, needsEmailConfirm:false };
   }
   return { ok:true, needsEmailConfirm:true };
@@ -656,6 +670,14 @@ async function csListVagas({uf} = {}){
   return data;
 }
 
+async function csUploadImagemVaga(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('vagas-fotos').upload(path, file);
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('vagas-fotos').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
 async function csCreateVaga(fields){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
@@ -790,7 +812,8 @@ document.addEventListener('DOMContentLoaded', async function(){
       const profile = await csGetMyProfile();
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm"><i class="ti ti-user"></i> ' + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
+      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }
