@@ -1086,6 +1086,67 @@ async function csAlternarCurtida(publicacaoId){
   }
 }
 
+let CS_CRITERIOS_PERFIL_CACHE = null;
+
+function csRenderCriteriosPerfil(respostasAtuais){
+  const wrap = document.getElementById('criterios-perfil-lista');
+  wrap.innerHTML = '';
+  let categoriaAtual = '';
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
+    if(c.categoria !== categoriaAtual){
+      categoriaAtual = c.categoria;
+      const h = document.createElement('div');
+      h.className = 'categoria-header';
+      h.textContent = categoriaAtual;
+      wrap.appendChild(h);
+    }
+    const valorAtual = (respostasAtuais && respostasAtuais[c.codigo]) || '';
+    const row = document.createElement('div');
+    row.className = 'criterio-row';
+    let campo = '';
+    if(c.tipo === 'escolha'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:260px;"><option value="">Nao responder</option>' +
+        c.opcoes.map(o => '<option value="'+o+'"'+(o===valorAtual?' selected':'')+'>'+o+'</option>').join('') + '</select>';
+    } else if(c.tipo === 'boolean'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:140px;"><option value="">Nao responder</option>' +
+        '<option value="Sim"'+(valorAtual==='Sim'?' selected':'')+'>Sim</option>' +
+        '<option value="Nao"'+(valorAtual==='Nao'?' selected':'')+'>Nao</option></select>';
+    } else if(c.tipo === 'escala'){
+      let pills = '';
+      for(let n=1;n<=5;n++){
+        pills += '<label class="rating-pill"><input type="radio" class="crit-input" data-codigo="'+c.codigo+'" name="crit-'+c.codigo+'" value="'+n+'"'+(String(n)===valorAtual?' checked':'')+'><span>'+n+'</span></label>';
+      }
+      campo = '<div class="rating-row">'+pills+'</div>';
+    } else {
+      campo = '<input type="text" class="crit-input" data-codigo="'+c.codigo+'" value="'+(valorAtual||'').replace(/"/g,'')+'" style="max-width:220px;">';
+    }
+    row.innerHTML = '<span class="nome">'+c.pergunta+' <span class="hint">('+c.pontos+' pts)</span></span>'+campo;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.crit-input').forEach(el => el.addEventListener('change', csAtualizarPontuacaoLive));
+}
+
+function csColetarRespostasPerfil(){
+  const respostas = {};
+  document.querySelectorAll('#criterios-perfil-lista select.crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=text].crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=radio].crit-input:checked').forEach(el => {
+    respostas[el.dataset.codigo] = el.value;
+  });
+  return respostas;
+}
+
+function csAtualizarPontuacaoLive(){
+  const respostas = csColetarRespostasPerfil();
+  let total = 0;
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
+  document.getElementById('pontuacao-atual').textContent = total + ' / 100';
+}
+
 /* ===================== UI comum a todas as paginas ===================== */
 
 document.addEventListener('DOMContentLoaded', async function(){

@@ -322,7 +322,7 @@ footer.site-footer .grid{margin-bottom:32px;}
 </header>
 
 <section class="section">
-  <div class="container" style="max-width:520px;">
+  <div class="container" style="max-width:640px;">
     <div class="tabs-wrap">
       <div class="tabs">
         <button class="tab-btn active" data-tab="login">Entrar</button>
@@ -343,6 +343,7 @@ footer.site-footer .grid{margin-bottom:32px;}
       <div class="tab-panel" data-tab-panel="cadastro">
         <div class="form-card">
           <form id="cadastro-form">
+            <h3>Dados basicos</h3>
             <label>Tipo de usuario</label>
             <select id="cad-tipo"><option value="profissional">Pessoa fisica</option><option value="empresa">Empresa / contratante</option></select>
             <label>Nome / Razao social</label><input type="text" id="cad-nome" required>
@@ -354,12 +355,37 @@ footer.site-footer .grid{margin-bottom:32px;}
             <label>E-mail</label><input type="email" id="cad-email" required>
             <label>Foto de perfil (opcional)</label><input type="file" id="cad-foto" accept="image/*">
             <label>Senha</label><input type="password" id="cad-senha" required minlength="6">
-            <label style="display:flex;align-items:center;gap:8px;flex-direction:row;text-transform:none;font-weight:400;font-size:13px;">
+
+            <hr style="border:none;border-top:1px solid var(--cs-border);margin:24px 0;">
+
+            <h3>Perfil profissional</h3>
+            <p class="hint" style="margin-top:-6px;">Esse perfil fica exposto no Banco de Talentos. Nenhuma pergunta e obrigatoria, mas cada uma respondida soma pontos (maximo 100). Nao ha perguntas sobre saude ou uso de substancias.</p>
+            <div class="form-row">
+              <div><label>Funcao pretendida</label><select id="cad-funcao"></select></div>
+              <div><label>Experiencia (resumo livre)</label><input type="text" id="cad-experiencia" placeholder="Ex: 6 anos em sinalizacao horizontal"></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px;margin:16px 0;">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;">Pontuacao atual:</div>
+              <div id="pontuacao-atual" style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--cs-yellow-dark);">0 / 100</div>
+            </div>
+            <div id="criterios-perfil-lista"></div>
+
+            <label style="margin-top:20px;">Quais tipos de servico ja executou (opcional)</label>
+            <textarea id="cad-servicos-executados" placeholder="Descreva os servicos e atividades que voce ja executou"></textarea>
+            <label>Em quais empresas voce ja trabalhou (opcional)</label>
+            <textarea id="cad-empresas-trabalhou" placeholder="Liste as empresas onde ja atuou"></textarea>
+            <label>Mensagem final (opcional)</label>
+            <textarea id="cad-mensagem-final" placeholder="Algo mais que queira destacar para quem for te contratar"></textarea>
+            <label>Curriculo em PDF (opcional)</label>
+            <input type="file" id="cad-curriculo" accept="application/pdf">
+
+            <label style="display:flex;align-items:center;gap:8px;flex-direction:row;text-transform:none;font-weight:400;font-size:13px;margin-top:24px;">
               <input type="checkbox" id="cad-termos" style="width:auto;" required> Li e aceito os <a href="termos.html" style="color:var(--cs-yellow-dark);">termos de uso</a>
             </label>
             <div id="cadastro-msg"></div>
             <div style="margin-top:20px;"><button type="submit" class="btn btn-primary" style="width:100%;">Criar cadastro</button></div>
-            <p class="hint">Voce pode entrar depois usando o telefone ou o e-mail cadastrado. Apos o cadastro, a validacao de identidade (KYC) e feita antes de liberar publicacao de obras, equipamentos ou vagas.</p>
+            <p class="hint">Voce pode entrar depois usando o telefone ou o e-mail cadastrado. Todos os dados acima podem ser alterados depois em "Meu curriculo".</p>
           </form>
         </div>
       </div>
@@ -368,9 +394,16 @@ footer.site-footer .grid{margin-bottom:32px;}
 </section>
 
 <script>
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', async function(){
   const sel = document.getElementById('cad-uf');
   if(sel){ CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); }); }
+
+  const funcoes = await csListFuncoes();
+  const selFuncao = document.getElementById('cad-funcao');
+  if(selFuncao){ funcoes.forEach(f => { const o = document.createElement('option'); o.value = f.codigo; o.textContent = f.nome; selFuncao.appendChild(o); }); }
+
+  if(!window.CS_CRITERIOS_PERFIL_CACHE){ window.CS_CRITERIOS_PERFIL_CACHE = await csListCriteriosPerfil(); }
+  if(typeof csRenderCriteriosPerfil === 'function'){ csRenderCriteriosPerfil({}); csAtualizarPontuacaoLive(); }
 
   const loginForm = document.getElementById('login-form');
   if(loginForm){
@@ -402,9 +435,27 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       if(!res.ok){ msg.innerHTML = '<div class="notice">'+res.error+'</div>'; return; }
       if(res.needsEmailConfirm){
-        msg.innerHTML = '<div class="notice">Cadastro criado. Confirme seu e-mail para poder entrar (link enviado pelo Supabase Auth) - depois disso, pode entrar com telefone ou e-mail.</div>';
+        msg.innerHTML = '<div class="notice">Cadastro criado. Confirme seu e-mail para poder entrar - depois disso, entre e complete o perfil profissional em "Meu curriculo" (os dados desta tela nao puderam ser salvos ainda porque a conta nao esta confirmada).</div>';
         return;
       }
+      const user = await csGetUser();
+      let curriculoUrl = null;
+      const curriculoFile = document.getElementById('cad-curriculo').files[0];
+      if(curriculoFile){
+        const up = await csUploadCurriculo(user.id, curriculoFile);
+        if(up.ok) curriculoUrl = up.url;
+      }
+      const respostas = csColetarRespostasPerfil();
+      await csSalvarPerfilTalento({
+        funcao_codigo: document.getElementById('cad-funcao').value || null,
+        experiencia: document.getElementById('cad-experiencia').value || null,
+        servicos_executados: document.getElementById('cad-servicos-executados').value || null,
+        empresas_trabalhou: document.getElementById('cad-empresas-trabalhou').value || null,
+        mensagem_final: document.getElementById('cad-mensagem-final').value || null,
+        ...(curriculoUrl ? { curriculo_url: curriculoUrl } : {}),
+        respostas_perfil: respostas,
+        visivel: true
+      });
       window.location.href = 'index.html';
     });
   }
@@ -915,6 +966,67 @@ async function csAlternarCurtida(publicacaoId){
     if(error) return { ok:false, error: error.message };
     return { ok:true, curtido:true };
   }
+}
+
+let CS_CRITERIOS_PERFIL_CACHE = null;
+
+function csRenderCriteriosPerfil(respostasAtuais){
+  const wrap = document.getElementById('criterios-perfil-lista');
+  wrap.innerHTML = '';
+  let categoriaAtual = '';
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
+    if(c.categoria !== categoriaAtual){
+      categoriaAtual = c.categoria;
+      const h = document.createElement('div');
+      h.className = 'categoria-header';
+      h.textContent = categoriaAtual;
+      wrap.appendChild(h);
+    }
+    const valorAtual = (respostasAtuais && respostasAtuais[c.codigo]) || '';
+    const row = document.createElement('div');
+    row.className = 'criterio-row';
+    let campo = '';
+    if(c.tipo === 'escolha'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:260px;"><option value="">Nao responder</option>' +
+        c.opcoes.map(o => '<option value="'+o+'"'+(o===valorAtual?' selected':'')+'>'+o+'</option>').join('') + '</select>';
+    } else if(c.tipo === 'boolean'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:140px;"><option value="">Nao responder</option>' +
+        '<option value="Sim"'+(valorAtual==='Sim'?' selected':'')+'>Sim</option>' +
+        '<option value="Nao"'+(valorAtual==='Nao'?' selected':'')+'>Nao</option></select>';
+    } else if(c.tipo === 'escala'){
+      let pills = '';
+      for(let n=1;n<=5;n++){
+        pills += '<label class="rating-pill"><input type="radio" class="crit-input" data-codigo="'+c.codigo+'" name="crit-'+c.codigo+'" value="'+n+'"'+(String(n)===valorAtual?' checked':'')+'><span>'+n+'</span></label>';
+      }
+      campo = '<div class="rating-row">'+pills+'</div>';
+    } else {
+      campo = '<input type="text" class="crit-input" data-codigo="'+c.codigo+'" value="'+(valorAtual||'').replace(/"/g,'')+'" style="max-width:220px;">';
+    }
+    row.innerHTML = '<span class="nome">'+c.pergunta+' <span class="hint">('+c.pontos+' pts)</span></span>'+campo;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.crit-input').forEach(el => el.addEventListener('change', csAtualizarPontuacaoLive));
+}
+
+function csColetarRespostasPerfil(){
+  const respostas = {};
+  document.querySelectorAll('#criterios-perfil-lista select.crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=text].crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=radio].crit-input:checked').forEach(el => {
+    respostas[el.dataset.codigo] = el.value;
+  });
+  return respostas;
+}
+
+function csAtualizarPontuacaoLive(){
+  const respostas = csColetarRespostasPerfil();
+  let total = 0;
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
+  document.getElementById('pontuacao-atual').textContent = total + ' / 100';
 }
 
 /* ===================== UI comum a todas as paginas ===================== */
