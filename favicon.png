@@ -329,6 +329,14 @@ async function csGetMeuTalento(){
   return data;
 }
 
+async function csUploadCurriculo(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('curriculos-pdf').upload(path, file, { upsert: true });
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('curriculos-pdf').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
 async function csSalvarPerfilTalento(fields){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
@@ -395,6 +403,68 @@ async function csEnviarMensagemNegociacao(negociacaoId, tipo, valorProposto, men
   return { ok:true };
 }
 
+/* ===================== COMUNIDADE (feed) ===================== */
+
+async function csListPublicacoes(){
+  const { data, error } = await csClient.from('publicacoes')
+    .select('*, profiles(nome, foto_url, tipo_usuario)')
+    .order('criado_em', { ascending: false })
+    .limit(50);
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csCriarPublicacao(conteudo, imagemFile){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  let imagemUrl = null;
+  if(imagemFile){
+    const path = `${user.id}/${Date.now()}-${imagemFile.name}`;
+    const { error: errUp } = await csClient.storage.from('publicacoes-fotos').upload(path, imagemFile);
+    if(errUp) return { ok:false, error: errUp.message };
+    const { data } = csClient.storage.from('publicacoes-fotos').getPublicUrl(path);
+    imagemUrl = data.publicUrl;
+  }
+  const { error } = await csClient.from('publicacoes').insert({ autor_id: user.id, conteudo, imagem_url: imagemUrl });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csExcluirPublicacao(id){
+  const { error } = await csClient.from('publicacoes').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csContarCurtidas(publicacaoId){
+  const { data, error } = await csClient.rpc('contar_curtidas', { p_publicacao_id: publicacaoId });
+  if(error){ console.error(error); return 0; }
+  return data || 0;
+}
+
+async function csEuCurti(publicacaoId){
+  const user = await csGetUser();
+  if(!user) return false;
+  const { data, error } = await csClient.from('publicacao_votos').select('publicacao_id').eq('publicacao_id', publicacaoId).eq('user_id', user.id).maybeSingle();
+  if(error){ console.error(error); return false; }
+  return !!data;
+}
+
+async function csAlternarCurtida(publicacaoId){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const ja = await csEuCurti(publicacaoId);
+  if(ja){
+    const { error } = await csClient.from('publicacao_votos').delete().eq('publicacao_id', publicacaoId).eq('user_id', user.id);
+    if(error) return { ok:false, error: error.message };
+    return { ok:true, curtido:false };
+  } else {
+    const { error } = await csClient.from('publicacao_votos').insert({ publicacao_id: publicacaoId, user_id: user.id });
+    if(error) return { ok:false, error: error.message };
+    return { ok:true, curtido:true };
+  }
+}
+
 /* ===================== UI comum a todas as paginas ===================== */
 
 document.addEventListener('DOMContentLoaded', async function(){
@@ -438,7 +508,17 @@ document.addEventListener('DOMContentLoaded', async function(){
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
       const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      userBox.innerHTML = `
+        <div class="nav-item" style="position:relative;">
+          <span class="btn btn-outline btn-sm">${avatar}${nome}</span>${pendente}
+          <div class="submenu" style="right:0;left:auto;">
+            <a href="talentos.html#talentos">Meu curriculo</a>
+            <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
+            <a href="comunidade.html">Comunidade</a>
+            <a href="#" id="cs-logout">Sair</a>
+          </div>
+        </div>
+      `;
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }
