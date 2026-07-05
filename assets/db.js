@@ -403,6 +403,68 @@ async function csEnviarMensagemNegociacao(negociacaoId, tipo, valorProposto, men
   return { ok:true };
 }
 
+/* ===================== COMUNIDADE (feed) ===================== */
+
+async function csListPublicacoes(){
+  const { data, error } = await csClient.from('publicacoes')
+    .select('*, profiles(nome, foto_url, tipo_usuario)')
+    .order('criado_em', { ascending: false })
+    .limit(50);
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csCriarPublicacao(conteudo, imagemFile){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  let imagemUrl = null;
+  if(imagemFile){
+    const path = `${user.id}/${Date.now()}-${imagemFile.name}`;
+    const { error: errUp } = await csClient.storage.from('publicacoes-fotos').upload(path, imagemFile);
+    if(errUp) return { ok:false, error: errUp.message };
+    const { data } = csClient.storage.from('publicacoes-fotos').getPublicUrl(path);
+    imagemUrl = data.publicUrl;
+  }
+  const { error } = await csClient.from('publicacoes').insert({ autor_id: user.id, conteudo, imagem_url: imagemUrl });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csExcluirPublicacao(id){
+  const { error } = await csClient.from('publicacoes').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csContarCurtidas(publicacaoId){
+  const { data, error } = await csClient.rpc('contar_curtidas', { p_publicacao_id: publicacaoId });
+  if(error){ console.error(error); return 0; }
+  return data || 0;
+}
+
+async function csEuCurti(publicacaoId){
+  const user = await csGetUser();
+  if(!user) return false;
+  const { data, error } = await csClient.from('publicacao_votos').select('publicacao_id').eq('publicacao_id', publicacaoId).eq('user_id', user.id).maybeSingle();
+  if(error){ console.error(error); return false; }
+  return !!data;
+}
+
+async function csAlternarCurtida(publicacaoId){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const ja = await csEuCurti(publicacaoId);
+  if(ja){
+    const { error } = await csClient.from('publicacao_votos').delete().eq('publicacao_id', publicacaoId).eq('user_id', user.id);
+    if(error) return { ok:false, error: error.message };
+    return { ok:true, curtido:false };
+  } else {
+    const { error } = await csClient.from('publicacao_votos').insert({ publicacao_id: publicacaoId, user_id: user.id });
+    if(error) return { ok:false, error: error.message };
+    return { ok:true, curtido:true };
+  }
+}
+
 /* ===================== UI comum a todas as paginas ===================== */
 
 document.addEventListener('DOMContentLoaded', async function(){
