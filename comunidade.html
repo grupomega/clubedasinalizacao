@@ -332,7 +332,7 @@ footer.site-footer .grid{margin-bottom:32px;}
 <section class="section">
   <div class="container" style="max-width:640px;">
 
-    <div id="comunidade-login-warning" class="notice" style="display:none;">Entre com sua conta ou <a href="usuarios.html#cadastro">cadastre-se</a> para ver e participar da comunidade.</div>
+    <div id="comunidade-login-warning" class="notice" style="display:none;">Entre com sua conta ou <a href="usuarios.html#cadastro">cadastre-se</a> para publicar e curtir.</div>
 
     <div id="form-publicacao" class="form-card" style="margin-bottom:28px;">
       <textarea id="pub-conteudo" placeholder="Compartilhe uma novidade, uma obra concluida, uma duvida tecnica..." rows="3"></textarea>
@@ -355,9 +355,6 @@ document.addEventListener('DOMContentLoaded', async function(){
   const logado = await csIsLogged();
   document.getElementById('comunidade-login-warning').style.display = logado ? 'none' : 'block';
   document.getElementById('form-publicacao').style.display = logado ? 'block' : 'none';
-  if(!logado){
-    document.getElementById('feed-publicacoes').innerHTML = '';
-  }
 
   const user = logado ? await csGetUser() : null;
 
@@ -373,7 +370,6 @@ document.addEventListener('DOMContentLoaded', async function(){
   }
 
   async function renderFeed(){
-    if(!logado) return;
     const wrap = document.getElementById('feed-publicacoes');
     wrap.innerHTML = '<div class="empty-state">Carregando...</div>';
     const posts = await csListPublicacoes();
@@ -383,7 +379,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       const autor = p.profiles || {};
       const avatar = autor.foto_url ? `<img src="${autor.foto_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` : '<div style="width:40px;height:40px;border-radius:50%;background:var(--cs-bg);display:flex;align-items:center;justify-content:center;"><i class="ti ti-user"></i></div>';
       const curtidas = await csContarCurtidas(p.id);
-      const euCurti = await csEuCurti(p.id);
+      const euCurti = logado ? await csEuCurti(p.id) : false;
       const podeExcluir = user && p.autor_id === user.id;
       const card = document.createElement('div');
       card.className = 'card';
@@ -408,6 +404,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     wrap.querySelectorAll('.btn-curtir').forEach(btn => {
       btn.addEventListener('click', async function(){
+        if(!(await csIsLogged())){ window.location.href = 'usuarios.html#cadastro'; return; }
         const id = this.dataset.id;
         const res = await csAlternarCurtida(id);
         if(!res.ok){ alert('Erro: '+res.error); return; }
@@ -992,7 +989,17 @@ document.addEventListener('DOMContentLoaded', async function(){
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
       const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      userBox.innerHTML = `
+        <div class="nav-item" style="position:relative;">
+          <span class="btn btn-outline btn-sm">${avatar}${nome}</span>${pendente}
+          <div class="submenu" style="right:0;left:auto;">
+            <a href="talentos.html#talentos">Meu curriculo</a>
+            <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
+            <a href="comunidade.html">Comunidade</a>
+            <a href="#" id="cs-logout">Sair</a>
+          </div>
+        </div>
+      `;
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }

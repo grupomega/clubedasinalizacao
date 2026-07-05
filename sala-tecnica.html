@@ -1009,7 +1009,17 @@ document.addEventListener('DOMContentLoaded', async function(){
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
       const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      userBox.innerHTML = `
+        <div class="nav-item" style="position:relative;">
+          <span class="btn btn-outline btn-sm">${avatar}${nome}</span>${pendente}
+          <div class="submenu" style="right:0;left:auto;">
+            <a href="talentos.html#talentos">Meu curriculo</a>
+            <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
+            <a href="comunidade.html">Comunidade</a>
+            <a href="#" id="cs-logout">Sair</a>
+          </div>
+        </div>
+      `;
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }
