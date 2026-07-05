@@ -337,32 +337,49 @@ footer.site-footer .grid{margin-bottom:32px;}
 
     <div class="tab-panel active" data-tab-panel="talentos">
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-        <button class="btn btn-primary" id="btn-cadastrar-talento">Cadastrar meu curriculo</button>
+        <button class="btn btn-primary" id="btn-cadastrar-talento">Meu perfil e curriculo</button>
       </div>
 
       <div id="form-talento" class="form-card" style="display:none;margin-bottom:32px;">
-        <h3>Cadastro de talento</h3>
-        <div id="talento-login-warning" class="notice" style="display:none;">Voce precisa <a href="usuarios.html#login">entrar</a> ou <a href="usuarios.html#cadastro">se cadastrar</a> antes de enviar seu curriculo.</div>
-        <form id="talento-form">
-          <div class="form-row">
-            <div><label>Funcao pretendida</label><select id="tal-funcao"></select></div>
-            <div><label>Estado (UF)</label><select id="tal-uf"></select></div>
-          </div>
-          <div class="form-row">
-            <div><label>Cidade</label><input type="text" id="tal-cidade" placeholder="Ex: Varginha"></div>
-            <div><label>Experiencia profissional (resumo)</label><input type="text" id="tal-experiencia" placeholder="Ex: 6 anos em sinalizacao horizontal"></div>
-          </div>
-          <div class="form-row">
-            <div><label>Disponibilidade de viagem</label><select id="tal-viagem"><option value="true">Sim</option><option value="false">Nao</option></select></div>
-            <div><label>Disponibilidade de alojamento</label><select id="tal-alojamento"><option value="true">Sim</option><option value="false">Nao</option></select></div>
-          </div>
-          <p class="hint">Este cadastro nao inclui perguntas de saude/exame toxicologico. Esses itens sao tratados separadamente no processo de admissao de cada vaga, nunca no curriculo publico.</p>
-          <div id="talento-msg"></div>
-          <div style="margin-top:20px;display:flex;gap:10px;">
-            <button type="submit" class="btn btn-primary">Enviar cadastro</button>
-            <button type="button" class="btn btn-outline" id="talento-cancel">Cancelar</button>
-          </div>
-        </form>
+        <div id="talento-login-warning" class="notice" style="display:none;">Voce precisa <a href="usuarios.html#login">entrar</a> ou <a href="usuarios.html#cadastro">se cadastrar</a> para editar seu perfil.</div>
+
+        <h3>Meus dados</h3>
+        <p class="hint">Esses dados aparecem no seu perfil na plataforma. Voce pode altera-los quando quiser.</p>
+        <div class="form-row">
+          <div><label>Nome</label><input type="text" id="perfil-nome"></div>
+          <div><label>Telefone</label><input type="text" id="perfil-telefone"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Estado (UF)</label><select id="perfil-uf"></select></div>
+          <div><label>Cidade</label><input type="text" id="perfil-cidade"></div>
+        </div>
+        <div id="perfil-msg"></div>
+        <div style="margin:14px 0 28px;"><button type="button" class="btn btn-outline btn-sm" id="btn-salvar-perfil">Salvar meus dados</button></div>
+
+        <hr style="border:none;border-top:1px solid var(--cs-border);margin-bottom:24px;">
+
+        <h3>Curriculo</h3>
+        <div class="form-row">
+          <div><label>Funcao pretendida</label><select id="tal-funcao"></select></div>
+          <div><label>Descricao livre da experiencia (opcional)</label><input type="text" id="tal-experiencia" placeholder="Ex: 6 anos em sinalizacao horizontal"></div>
+        </div>
+
+        <div class="notice">Nenhuma pergunta abaixo e obrigatoria - mas cada uma respondida soma pontos no seu perfil (maximo 100). Nao ha perguntas sobre saude ou uso de substancias: isso e tratado separadamente, apenas no processo de admissao de uma vaga especifica.</div>
+        <div style="display:flex;align-items:center;gap:12px;margin:16px 0;">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:700;">Pontuacao atual:</div>
+          <div id="pontuacao-atual" style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--cs-yellow-dark);">0 / 100</div>
+        </div>
+
+        <div id="criterios-perfil-lista"></div>
+
+        <label style="margin-top:20px;">Mensagem final (opcional)</label>
+        <textarea id="tal-mensagem-final" placeholder="Algo mais que queira destacar para quem for te contratar"></textarea>
+
+        <div id="talento-msg"></div>
+        <div style="margin-top:20px;display:flex;gap:10px;">
+          <button type="button" class="btn btn-primary" id="btn-salvar-curriculo">Salvar curriculo</button>
+          <button type="button" class="btn btn-outline" id="talento-cancel">Fechar</button>
+        </div>
       </div>
 
       <div class="grid grid-3" id="lista-talentos"><div class="empty-state">Carregando...</div></div>
@@ -375,7 +392,7 @@ footer.site-footer .grid{margin-bottom:32px;}
 
       <div id="form-vaga" class="form-card" style="display:none;margin-bottom:32px;">
         <h3>Publicar vaga</h3>
-        <div id="vaga-login-warning" class="notice" style="display:none;">Voce precisa <a href="usuarios.html#login">entrar</a> ou <a href="usuarios.html#cadastro">se cadastrar</a> como empresa (com KYC validado) para publicar uma vaga.</div>
+        <div id="vaga-login-warning" class="notice" style="display:none;">Voce precisa <a href="usuarios.html#login">entrar</a> ou <a href="usuarios.html#cadastro">se cadastrar como empresa</a> para publicar uma vaga.</div>
         <form id="vaga-form">
           <div class="form-row">
             <div><label>Funcao</label><select id="vaga-funcao"></select></div>
@@ -409,8 +426,69 @@ footer.site-footer .grid{margin-bottom:32px;}
 </section>
 
 <script>
+let CS_CRITERIOS_PERFIL_CACHE = null;
+
+function csRenderCriteriosPerfil(respostasAtuais){
+  const wrap = document.getElementById('criterios-perfil-lista');
+  wrap.innerHTML = '';
+  let categoriaAtual = '';
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
+    if(c.categoria !== categoriaAtual){
+      categoriaAtual = c.categoria;
+      const h = document.createElement('div');
+      h.className = 'categoria-header';
+      h.textContent = categoriaAtual;
+      wrap.appendChild(h);
+    }
+    const valorAtual = (respostasAtuais && respostasAtuais[c.codigo]) || '';
+    const row = document.createElement('div');
+    row.className = 'criterio-row';
+    let campo = '';
+    if(c.tipo === 'escolha'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:260px;"><option value="">Nao responder</option>' +
+        c.opcoes.map(o => '<option value="'+o+'"'+(o===valorAtual?' selected':'')+'>'+o+'</option>').join('') + '</select>';
+    } else if(c.tipo === 'boolean'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:140px;"><option value="">Nao responder</option>' +
+        '<option value="Sim"'+(valorAtual==='Sim'?' selected':'')+'>Sim</option>' +
+        '<option value="Nao"'+(valorAtual==='Nao'?' selected':'')+'>Nao</option></select>';
+    } else if(c.tipo === 'escala'){
+      let pills = '';
+      for(let n=1;n<=5;n++){
+        pills += '<label class="rating-pill"><input type="radio" class="crit-input" data-codigo="'+c.codigo+'" name="crit-'+c.codigo+'" value="'+n+'"'+(String(n)===valorAtual?' checked':'')+'><span>'+n+'</span></label>';
+      }
+      campo = '<div class="rating-row">'+pills+'</div>';
+    } else {
+      campo = '<input type="text" class="crit-input" data-codigo="'+c.codigo+'" value="'+(valorAtual||'').replace(/"/g,'')+'" style="max-width:220px;">';
+    }
+    row.innerHTML = '<span class="nome">'+c.pergunta+' <span class="hint">('+c.pontos+' pts)</span></span>'+campo;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.crit-input').forEach(el => el.addEventListener('change', csAtualizarPontuacaoLive));
+}
+
+function csColetarRespostasPerfil(){
+  const respostas = {};
+  document.querySelectorAll('#criterios-perfil-lista select.crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=text].crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=radio].crit-input:checked').forEach(el => {
+    respostas[el.dataset.codigo] = el.value;
+  });
+  return respostas;
+}
+
+function csAtualizarPontuacaoLive(){
+  const respostas = csColetarRespostasPerfil();
+  let total = 0;
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
+  document.getElementById('pontuacao-atual').textContent = total + ' / 100';
+}
+
 document.addEventListener('DOMContentLoaded', async function(){
-  document.querySelectorAll('#tal-uf, #vaga-uf').forEach(sel => {
+  document.querySelectorAll('#perfil-uf, #vaga-uf').forEach(sel => {
     CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); });
   });
   const funcoes = await csListFuncoes();
@@ -431,10 +509,11 @@ document.addEventListener('DOMContentLoaded', async function(){
       const nomeFuncao = t.funcoes_catalogo ? t.funcoes_catalogo.nome : t.funcao_codigo;
       el.innerHTML = `
         <div class="card-icon"><i class="ti ti-user"></i></div>
-        <h3>${nomeFuncao}</h3>
+        <h3>${nomeFuncao||'Talento'}</h3>
         <p>${t.cidade||''} / ${t.estado||''}</p>
         <p>Viagem: ${t.disponibilidade_viagem ? 'sim' : 'nao'} &middot; Alojamento: ${t.disponibilidade_alojamento ? 'sim' : 'nao'}</p>
         <p>${t.experiencia||''}</p>
+        <span class="badge badge-ativo">${t.pontuacao_perfil||0} / 100 pontos</span>
       `;
       wrap.appendChild(el);
     });
@@ -462,29 +541,57 @@ document.addEventListener('DOMContentLoaded', async function(){
   const btnTal = document.getElementById('btn-cadastrar-talento');
   const formTal = document.getElementById('form-talento');
   btnTal.addEventListener('click', async () => {
-    formTal.style.display = formTal.style.display === 'none' ? 'block' : 'none';
-    document.getElementById('talento-login-warning').style.display = (await csIsLogged()) ? 'none' : 'block';
+    const abrir = formTal.style.display === 'none';
+    formTal.style.display = abrir ? 'block' : 'none';
+    const logged = await csIsLogged();
+    document.getElementById('talento-login-warning').style.display = logged ? 'none' : 'block';
+    if(abrir && logged){
+      const profile = await csGetMyProfile();
+      if(profile){
+        document.getElementById('perfil-nome').value = profile.nome || '';
+        document.getElementById('perfil-telefone').value = profile.telefone || '';
+        document.getElementById('perfil-uf').value = profile.estado || '';
+        document.getElementById('perfil-cidade').value = profile.cidade || '';
+      }
+      if(!CS_CRITERIOS_PERFIL_CACHE) CS_CRITERIOS_PERFIL_CACHE = await csListCriteriosPerfil();
+      const meuTalento = await csGetMeuTalento();
+      csRenderCriteriosPerfil(meuTalento ? meuTalento.respostas_perfil : {});
+      csAtualizarPontuacaoLive();
+      if(meuTalento){
+        document.getElementById('tal-funcao').value = meuTalento.funcao_codigo || '';
+        document.getElementById('tal-experiencia').value = meuTalento.experiencia || '';
+        document.getElementById('tal-mensagem-final').value = meuTalento.mensagem_final || '';
+      }
+    }
     formTal.scrollIntoView({behavior:'smooth'});
   });
   document.getElementById('talento-cancel').addEventListener('click', () => formTal.style.display = 'none');
-  document.getElementById('talento-form').addEventListener('submit', async function(e){
-    e.preventDefault();
+
+  document.getElementById('btn-salvar-perfil').addEventListener('click', async function(){
+    const msg = document.getElementById('perfil-msg');
+    const res = await csAtualizarMeuProfile({
+      nome: document.getElementById('perfil-nome').value,
+      telefone: csNormalizeTelefone(document.getElementById('perfil-telefone').value),
+      estado: document.getElementById('perfil-uf').value,
+      cidade: document.getElementById('perfil-cidade').value
+    });
+    msg.innerHTML = res.ok ? '<div class="notice">Dados atualizados.</div>' : '<div class="notice">Erro: '+res.error+'</div>';
+  });
+
+  document.getElementById('btn-salvar-curriculo').addEventListener('click', async function(){
     const msg = document.getElementById('talento-msg');
     if(!(await csIsLogged())){ window.location.href = 'usuarios.html#cadastro'; return; }
-    const res = await csUpsertTalento({
-      funcao_codigo: document.getElementById('tal-funcao').value,
-      estado: document.getElementById('tal-uf').value,
-      cidade: document.getElementById('tal-cidade').value,
-      disponibilidade_viagem: document.getElementById('tal-viagem').value === 'true',
-      disponibilidade_alojamento: document.getElementById('tal-alojamento').value === 'true',
-      experiencia: document.getElementById('tal-experiencia').value,
+    const respostas = csColetarRespostasPerfil();
+    const res = await csSalvarPerfilTalento({
+      funcao_codigo: document.getElementById('tal-funcao').value || null,
+      experiencia: document.getElementById('tal-experiencia').value || null,
+      mensagem_final: document.getElementById('tal-mensagem-final').value || null,
+      respostas_perfil: respostas,
       visivel: true
     });
     if(!res.ok){ msg.innerHTML = '<div class="notice">Erro: '+res.error+'</div>'; return; }
-    formTal.style.display = 'none';
-    this.reset();
+    msg.innerHTML = '<div class="notice">Curriculo salvo com sucesso.</div>';
     renderTalentos();
-    alert('Curriculo cadastrado com sucesso.');
   });
 
   const btnVaga = document.getElementById('btn-publicar-vaga');
@@ -518,7 +625,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       exige_viagem: document.getElementById('vaga-viagem').value === 'true',
       imagem_url: imagemUrl
     });
-    if(!res.ok){ msg.innerHTML = '<div class="notice">Erro: '+res.error+' (e preciso ser empresa com KYC validado)</div>'; return; }
+    if(!res.ok){ msg.innerHTML = '<div class="notice">'+(res.error.includes('row-level security') ? 'Essa acao exige uma conta do tipo empresa/contratante. Se voce se cadastrou como pessoa fisica, crie uma conta empresa.' : res.error)+'</div>'; return; }
     formVaga.style.display = 'none';
     this.reset();
     document.getElementById('vaga-imagem-status').textContent = '';
@@ -878,6 +985,88 @@ async function csEnviarContato(fields){
 
 async function csEnviarDenuncia(fields){
   const { error } = await csClient.from('denuncias').insert(fields);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== PERFIL DE TALENTO (criterios + pontuacao) ===================== */
+
+async function csListCriteriosPerfil(){
+  const { data, error } = await csClient.from('criterios_perfil').select('*').order('ordem');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csGetMeuTalento(){
+  const user = await csGetUser();
+  if(!user) return null;
+  const { data, error } = await csClient.from('professional_profiles').select('*').eq('user_id', user.id).maybeSingle();
+  if(error){ console.error(error); return null; }
+  return data;
+}
+
+async function csSalvarPerfilTalento(fields){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { error } = await csClient.from('professional_profiles').upsert({ ...fields, user_id: user.id }, { onConflict: 'user_id' });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csAtualizarMeuProfile(fields){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { error } = await csClient.from('profiles').update(fields).eq('id', user.id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== NEGOCIACOES (propostas de locacao/venda) ===================== */
+
+async function csContarInteressados(equipamentoId){
+  const { data, error } = await csClient.rpc('contar_interessados_equipamento', { p_equipamento_id: equipamentoId });
+  if(error){ console.error(error); return 0; }
+  return data || 0;
+}
+
+async function csIniciarNegociacao(equipamentoId, anuncianteId, valorProposto, mensagem){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { data: neg, error } = await csClient.from('negociacoes').insert({
+    equipamento_id: equipamentoId, proponente_id: user.id, anunciante_id: anuncianteId
+  }).select().single();
+  if(error) return { ok:false, error: error.message };
+  const { error: errMsg } = await csClient.from('negociacao_mensagens').insert({
+    negociacao_id: neg.id, autor_id: user.id, tipo: 'proposta', valor_proposto: valorProposto || null, mensagem: mensagem || null
+  });
+  if(errMsg) return { ok:false, error: errMsg.message };
+  return { ok:true, negociacao: neg };
+}
+
+async function csMinhasNegociacoes(){
+  const user = await csGetUser();
+  if(!user) return [];
+  const { data, error } = await csClient.from('negociacoes')
+    .select('*, equipamentos(equipamento, categoria, tipo_oferta)')
+    .or(`proponente_id.eq.${user.id},anunciante_id.eq.${user.id}`)
+    .order('atualizado_em', { ascending: false });
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csMensagensNegociacao(negociacaoId){
+  const { data, error } = await csClient.from('negociacao_mensagens')
+    .select('*').eq('negociacao_id', negociacaoId).order('criado_em', { ascending: true });
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csEnviarMensagemNegociacao(negociacaoId, tipo, valorProposto, mensagem){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { error } = await csClient.from('negociacao_mensagens').insert({
+    negociacao_id: negociacaoId, autor_id: user.id, tipo, valor_proposto: valorProposto || null, mensagem: mensagem || null
+  });
   if(error) return { ok:false, error: error.message };
   return { ok:true };
 }
