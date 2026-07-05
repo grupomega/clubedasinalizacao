@@ -38,7 +38,15 @@ function csNormalizeTelefone(t){
   return (t || '').replace(/\D/g, '');
 }
 
-async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, telefone}){
+async function csUploadFotoPerfil(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('perfis-fotos').upload(path, file);
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('perfis-fotos').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
+async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, telefone, fotoFile}){
   const telefoneNorm = csNormalizeTelefone(telefone);
   const { data, error } = await csClient.auth.signUp({
     email, password,
@@ -47,11 +55,17 @@ async function csSignUp({email, password, nome, tipoUsuario, estado, cidade, tel
   if(error) return { ok:false, error: error.message };
 
   if(data.session && data.user){
+    let fotoUrl = null;
+    if(fotoFile){
+      const up = await csUploadFotoPerfil(data.user.id, fotoFile);
+      if(up.ok) fotoUrl = up.url;
+    }
     const { error: errProfile } = await csClient.from('profiles').update({
       estado, cidade, telefone: telefoneNorm,
+      ...(fotoUrl ? { foto_url: fotoUrl } : {}),
       aceite_termos_versao: 'v1', aceite_termos_em: new Date().toISOString()
     }).eq('id', data.user.id);
-    if(errProfile) return { ok:false, error: 'Cadastro criado, mas houve erro ao salvar telefone/cidade: ' + errProfile.message };
+    if(errProfile) return { ok:false, error: 'Cadastro criado, mas houve erro ao salvar dados do perfil: ' + errProfile.message };
     return { ok:true, needsEmailConfirm:false };
   }
   return { ok:true, needsEmailConfirm:true };
@@ -199,6 +213,14 @@ async function csListVagas({uf} = {}){
   return data;
 }
 
+async function csUploadImagemVaga(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('vagas-fotos').upload(path, file);
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('vagas-fotos').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
 async function csCreateVaga(fields){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
@@ -291,6 +313,96 @@ async function csEnviarDenuncia(fields){
   return { ok:true };
 }
 
+/* ===================== PERFIL DE TALENTO (criterios + pontuacao) ===================== */
+
+async function csListCriteriosPerfil(){
+  const { data, error } = await csClient.from('criterios_perfil').select('*').order('ordem');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csGetMeuTalento(){
+  const user = await csGetUser();
+  if(!user) return null;
+  const { data, error } = await csClient.from('professional_profiles').select('*').eq('user_id', user.id).maybeSingle();
+  if(error){ console.error(error); return null; }
+  return data;
+}
+
+async function csUploadCurriculo(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('curriculos-pdf').upload(path, file, { upsert: true });
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('curriculos-pdf').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
+async function csSalvarPerfilTalento(fields){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { error } = await csClient.from('professional_profiles').upsert({ ...fields, user_id: user.id }, { onConflict: 'user_id' });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csAtualizarMeuProfile(fields){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { error } = await csClient.from('profiles').update(fields).eq('id', user.id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== NEGOCIACOES (propostas de locacao/venda) ===================== */
+
+async function csContarInteressados(equipamentoId){
+  const { data, error } = await csClient.rpc('contar_interessados_equipamento', { p_equipamento_id: equipamentoId });
+  if(error){ console.error(error); return 0; }
+  return data || 0;
+}
+
+async function csIniciarNegociacao(equipamentoId, anuncianteId, valorProposto, mensagem){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { data: neg, error } = await csClient.from('negociacoes').insert({
+    equipamento_id: equipamentoId, proponente_id: user.id, anunciante_id: anuncianteId
+  }).select().single();
+  if(error) return { ok:false, error: error.message };
+  const { error: errMsg } = await csClient.from('negociacao_mensagens').insert({
+    negociacao_id: neg.id, autor_id: user.id, tipo: 'proposta', valor_proposto: valorProposto || null, mensagem: mensagem || null
+  });
+  if(errMsg) return { ok:false, error: errMsg.message };
+  return { ok:true, negociacao: neg };
+}
+
+async function csMinhasNegociacoes(){
+  const user = await csGetUser();
+  if(!user) return [];
+  const { data, error } = await csClient.from('negociacoes')
+    .select('*, equipamentos(equipamento, categoria, tipo_oferta)')
+    .or(`proponente_id.eq.${user.id},anunciante_id.eq.${user.id}`)
+    .order('atualizado_em', { ascending: false });
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csMensagensNegociacao(negociacaoId){
+  const { data, error } = await csClient.from('negociacao_mensagens')
+    .select('*').eq('negociacao_id', negociacaoId).order('criado_em', { ascending: true });
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csEnviarMensagemNegociacao(negociacaoId, tipo, valorProposto, mensagem){
+  const user = await csGetUser();
+  if(!user) return { ok:false, error:'nao autenticado' };
+  const { error } = await csClient.from('negociacao_mensagens').insert({
+    negociacao_id: negociacaoId, autor_id: user.id, tipo, valor_proposto: valorProposto || null, mensagem: mensagem || null
+  });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
 /* ===================== UI comum a todas as paginas ===================== */
 
 document.addEventListener('DOMContentLoaded', async function(){
@@ -333,7 +445,8 @@ document.addEventListener('DOMContentLoaded', async function(){
       const profile = await csGetMyProfile();
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm"><i class="ti ti-user"></i> ' + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
+      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }

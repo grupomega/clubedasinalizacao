@@ -786,6 +786,14 @@ async function csGetMeuTalento(){
   return data;
 }
 
+async function csUploadCurriculo(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('curriculos-pdf').upload(path, file, { upsert: true });
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('curriculos-pdf').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
+}
+
 async function csSalvarPerfilTalento(fields){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };

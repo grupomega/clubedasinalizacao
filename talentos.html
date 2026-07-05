@@ -372,8 +372,18 @@ footer.site-footer .grid{margin-bottom:32px;}
 
         <div id="criterios-perfil-lista"></div>
 
-        <label style="margin-top:20px;">Mensagem final (opcional)</label>
+        <label style="margin-top:20px;">Quais tipos de servico ja executou (opcional)</label>
+        <textarea id="tal-servicos-executados" placeholder="Descreva os servicos e atividades que voce ja executou"></textarea>
+
+        <label>Em quais empresas voce ja trabalhou (opcional)</label>
+        <textarea id="tal-empresas-trabalhou" placeholder="Liste as empresas onde ja atuou"></textarea>
+
+        <label>Mensagem final (opcional)</label>
         <textarea id="tal-mensagem-final" placeholder="Algo mais que queira destacar para quem for te contratar"></textarea>
+
+        <label>Currículo em PDF (opcional)</label>
+        <input type="file" id="tal-curriculo" accept="application/pdf">
+        <p class="hint" id="tal-curriculo-status"></p>
 
         <div id="talento-msg"></div>
         <div style="margin-top:20px;display:flex;gap:10px;">
@@ -514,6 +524,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         <p>Viagem: ${t.disponibilidade_viagem ? 'sim' : 'nao'} &middot; Alojamento: ${t.disponibilidade_alojamento ? 'sim' : 'nao'}</p>
         <p>${t.experiencia||''}</p>
         <span class="badge badge-ativo">${t.pontuacao_perfil||0} / 100 pontos</span>
+        ${t.curriculo_url ? `<div style="margin-top:8px;"><a href="${t.curriculo_url}" target="_blank" class="btn btn-outline btn-sm">Ver curriculo (PDF)</a></div>` : ''}
       `;
       wrap.appendChild(el);
     });
@@ -560,7 +571,10 @@ document.addEventListener('DOMContentLoaded', async function(){
       if(meuTalento){
         document.getElementById('tal-funcao').value = meuTalento.funcao_codigo || '';
         document.getElementById('tal-experiencia').value = meuTalento.experiencia || '';
+        document.getElementById('tal-servicos-executados').value = meuTalento.servicos_executados || '';
+        document.getElementById('tal-empresas-trabalhou').value = meuTalento.empresas_trabalhou || '';
         document.getElementById('tal-mensagem-final').value = meuTalento.mensagem_final || '';
+        document.getElementById('tal-curriculo-status').textContent = meuTalento.curriculo_url ? 'Curriculo ja enviado anteriormente.' : '';
       }
     }
     formTal.scrollIntoView({behavior:'smooth'});
@@ -581,11 +595,24 @@ document.addEventListener('DOMContentLoaded', async function(){
   document.getElementById('btn-salvar-curriculo').addEventListener('click', async function(){
     const msg = document.getElementById('talento-msg');
     if(!(await csIsLogged())){ window.location.href = 'usuarios.html#cadastro'; return; }
+    const user = await csGetUser();
+    let curriculoUrl = undefined;
+    const curriculoFile = document.getElementById('tal-curriculo').files[0];
+    if(curriculoFile){
+      document.getElementById('tal-curriculo-status').textContent = 'Enviando curriculo...';
+      const up = await csUploadCurriculo(user.id, curriculoFile);
+      if(!up.ok){ msg.innerHTML = '<div class="notice">Erro ao enviar curriculo: '+up.error+'</div>'; return; }
+      curriculoUrl = up.url;
+      document.getElementById('tal-curriculo-status').textContent = 'Curriculo enviado.';
+    }
     const respostas = csColetarRespostasPerfil();
     const res = await csSalvarPerfilTalento({
       funcao_codigo: document.getElementById('tal-funcao').value || null,
       experiencia: document.getElementById('tal-experiencia').value || null,
+      servicos_executados: document.getElementById('tal-servicos-executados').value || null,
+      empresas_trabalhou: document.getElementById('tal-empresas-trabalhou').value || null,
       mensagem_final: document.getElementById('tal-mensagem-final').value || null,
+      ...(curriculoUrl ? { curriculo_url: curriculoUrl } : {}),
       respostas_perfil: respostas,
       visivel: true
     });
@@ -1003,6 +1030,14 @@ async function csGetMeuTalento(){
   const { data, error } = await csClient.from('professional_profiles').select('*').eq('user_id', user.id).maybeSingle();
   if(error){ console.error(error); return null; }
   return data;
+}
+
+async function csUploadCurriculo(userId, file){
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { error } = await csClient.storage.from('curriculos-pdf').upload(path, file, { upsert: true });
+  if(error) return { ok:false, error: error.message };
+  const { data } = csClient.storage.from('curriculos-pdf').getPublicUrl(path);
+  return { ok:true, url: data.publicUrl };
 }
 
 async function csSalvarPerfilTalento(fields){
