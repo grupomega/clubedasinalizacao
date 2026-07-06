@@ -302,8 +302,9 @@ footer.site-footer .grid{margin-bottom:32px;}
           <a href="seguranca-viaria.html#auditoria">Boas praticas de auditoria viaria</a>
         </div>
       </div>
-      <div class="nav-item"><a class="top-link" href="maquinas.html">Balcao de negocios</a></div>
+      <div class="nav-item"><a class="top-link" href="maquinas.html">Maquinas e equipamentos</a></div>
       <div class="nav-item"><a class="top-link" href="oportunidades.html">Oportunidades de obras</a></div>
+      <div class="nav-item"><a class="top-link" href="avaliacoes.html">Avaliacoes</a></div>
       <div class="nav-item">
         <a class="top-link" href="talentos.html">Banco de talentos</a>
         <div class="submenu">
@@ -311,7 +312,7 @@ footer.site-footer .grid{margin-bottom:32px;}
           <a href="talentos.html#vagas">Vagas e oportunidades</a>
         </div>
       </div>
-      <div class="nav-item"><a class="top-link" href="comunidade.html">Post</a></div>
+      <div class="nav-item"><a class="top-link" href="comunidade.html">Comunidade</a></div>
     </nav>
     <div class="header-actions" id="user-session-box">
       <a href="usuarios.html#login" class="btn btn-outline btn-sm">Entrar</a>
@@ -436,6 +437,67 @@ footer.site-footer .grid{margin-bottom:32px;}
 </section>
 
 <script>
+let CS_CRITERIOS_PERFIL_CACHE = null;
+
+function csRenderCriteriosPerfil(respostasAtuais){
+  const wrap = document.getElementById('criterios-perfil-lista');
+  wrap.innerHTML = '';
+  let categoriaAtual = '';
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
+    if(c.categoria !== categoriaAtual){
+      categoriaAtual = c.categoria;
+      const h = document.createElement('div');
+      h.className = 'categoria-header';
+      h.textContent = categoriaAtual;
+      wrap.appendChild(h);
+    }
+    const valorAtual = (respostasAtuais && respostasAtuais[c.codigo]) || '';
+    const row = document.createElement('div');
+    row.className = 'criterio-row';
+    let campo = '';
+    if(c.tipo === 'escolha'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:260px;"><option value="">Nao responder</option>' +
+        c.opcoes.map(o => '<option value="'+o+'"'+(o===valorAtual?' selected':'')+'>'+o+'</option>').join('') + '</select>';
+    } else if(c.tipo === 'boolean'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:140px;"><option value="">Nao responder</option>' +
+        '<option value="Sim"'+(valorAtual==='Sim'?' selected':'')+'>Sim</option>' +
+        '<option value="Nao"'+(valorAtual==='Nao'?' selected':'')+'>Nao</option></select>';
+    } else if(c.tipo === 'escala'){
+      let pills = '';
+      for(let n=1;n<=5;n++){
+        pills += '<label class="rating-pill"><input type="radio" class="crit-input" data-codigo="'+c.codigo+'" name="crit-'+c.codigo+'" value="'+n+'"'+(String(n)===valorAtual?' checked':'')+'><span>'+n+'</span></label>';
+      }
+      campo = '<div class="rating-row">'+pills+'</div>';
+    } else {
+      campo = '<input type="text" class="crit-input" data-codigo="'+c.codigo+'" value="'+(valorAtual||'').replace(/"/g,'')+'" style="max-width:220px;">';
+    }
+    row.innerHTML = '<span class="nome">'+c.pergunta+' <span class="hint">('+c.pontos+' pts)</span></span>'+campo;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.crit-input').forEach(el => el.addEventListener('change', csAtualizarPontuacaoLive));
+}
+
+function csColetarRespostasPerfil(){
+  const respostas = {};
+  document.querySelectorAll('#criterios-perfil-lista select.crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=text].crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=radio].crit-input:checked').forEach(el => {
+    respostas[el.dataset.codigo] = el.value;
+  });
+  return respostas;
+}
+
+function csAtualizarPontuacaoLive(){
+  const respostas = csColetarRespostasPerfil();
+  let total = 0;
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
+  document.getElementById('pontuacao-atual').textContent = total + ' / 100';
+}
+
 document.addEventListener('DOMContentLoaded', async function(){
   document.querySelectorAll('#perfil-uf, #vaga-uf').forEach(sel => {
     CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); });
@@ -619,7 +681,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       </div>
       <div>
         <h4>Mercado</h4>
-        <p><a href="maquinas.html">Balcao de negocios</a></p>
+        <p><a href="maquinas.html">Maquinas e equipamentos</a></p>
         <p><a href="oportunidades.html">Oportunidades de obras</a></p>
         <p><a href="talentos.html#talentos">Banco de talentos</a></p>
         <p><a href="talentos.html#vagas">Vagas e oportunidades</a></p>
@@ -808,28 +870,18 @@ const CS_CATEGORIAS_EQUIP = [
   {value:'caminhao_apoio', label:'Caminhao de apoio'},
   {value:'maquinas', label:'Maquinas'},
   {value:'ferramentas', label:'Ferramentas'},
-  {value:'materiais_tintas', label:'Materiais e tintas'},
   {value:'outros', label:'Outros'}
 ];
 
-async function csListEquipamentos({tipoOferta, categoria, uf, excluirCategoria} = {}){
+async function csListEquipamentos({tipoOferta, categoria, uf} = {}){
   const authed = await csIsLogged();
   let q = csClient.from(authed ? 'equipamentos' : 'equipamentos_publicos').select('*').order('criado_em', {ascending:false});
   if(tipoOferta) q = q.eq('tipo_oferta', tipoOferta);
   if(categoria) q = q.eq('categoria', categoria);
-  if(excluirCategoria) q = q.neq('categoria', excluirCategoria);
   if(uf) q = q.eq('estado', uf);
   const { data, error } = await q;
   if(error){ console.error(error); return []; }
   return data;
-}
-
-async function csEquipamentoAleatorio(){
-  const authed = await csIsLogged();
-  const { data, error } = await csClient.from(authed ? 'equipamentos' : 'equipamentos_publicos')
-    .select('*').eq('disponivel', true).limit(50);
-  if(error || !data || data.length === 0){ return null; }
-  return data[Math.floor(Math.random() * data.length)];
 }
 
 async function csUploadFotosEquipamento(fileList){
@@ -1088,91 +1140,33 @@ async function csExcluirPublicacao(id){
   return { ok:true };
 }
 
-async function csObterMediaPost(postId){
-  const { data, error } = await csClient.rpc('obter_media_post', { p_post_id: postId });
-  if(error){ console.error(error); return { media_geral: null, total_avaliacoes: 0 }; }
-  return (data && data[0]) || { media_geral: null, total_avaliacoes: 0 };
+async function csContarCurtidas(publicacaoId){
+  const { data, error } = await csClient.rpc('contar_curtidas', { p_publicacao_id: publicacaoId });
+  if(error){ console.error(error); return 0; }
+  return data || 0;
 }
 
-async function csMinhaAvaliacaoPost(postId){
+async function csEuCurti(publicacaoId){
   const user = await csGetUser();
-  if(!user) return null;
-  const { data, error } = await csClient.from('post_avaliacoes').select('*').eq('post_id', postId).eq('avaliador_id', user.id).maybeSingle();
-  if(error){ console.error(error); return null; }
-  return data;
+  if(!user) return false;
+  const { data, error } = await csClient.from('publicacao_votos').select('publicacao_id').eq('publicacao_id', publicacaoId).eq('user_id', user.id).maybeSingle();
+  if(error){ console.error(error); return false; }
+  return !!data;
 }
 
-async function csAvaliarPost(postId, execucao, conformidade, organizacao){
+async function csAlternarCurtida(publicacaoId){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
-  const { error } = await csClient.from('post_avaliacoes').upsert({
-    post_id: postId, avaliador_id: user.id,
-    criterio_execucao: execucao, criterio_conformidade: conformidade, criterio_organizacao: organizacao,
-    atualizado_em: new Date().toISOString()
-  }, { onConflict: 'post_id,avaliador_id' });
-  if(error) return { ok:false, error: error.message };
-  return { ok:true };
-}
-
-let CS_CRITERIOS_PERFIL_CACHE = null;
-
-function csRenderCriteriosPerfil(respostasAtuais){
-  const wrap = document.getElementById('criterios-perfil-lista');
-  wrap.innerHTML = '';
-  let categoriaAtual = '';
-  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
-    if(c.categoria !== categoriaAtual){
-      categoriaAtual = c.categoria;
-      const h = document.createElement('div');
-      h.className = 'categoria-header';
-      h.textContent = categoriaAtual;
-      wrap.appendChild(h);
-    }
-    const valorAtual = (respostasAtuais && respostasAtuais[c.codigo]) || '';
-    const row = document.createElement('div');
-    row.className = 'criterio-row';
-    let campo = '';
-    if(c.tipo === 'escolha'){
-      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:260px;"><option value="">Nao responder</option>' +
-        c.opcoes.map(o => '<option value="'+o+'"'+(o===valorAtual?' selected':'')+'>'+o+'</option>').join('') + '</select>';
-    } else if(c.tipo === 'boolean'){
-      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:140px;"><option value="">Nao responder</option>' +
-        '<option value="Sim"'+(valorAtual==='Sim'?' selected':'')+'>Sim</option>' +
-        '<option value="Nao"'+(valorAtual==='Nao'?' selected':'')+'>Nao</option></select>';
-    } else if(c.tipo === 'escala'){
-      let pills = '';
-      for(let n=1;n<=5;n++){
-        pills += '<label class="rating-pill"><input type="radio" class="crit-input" data-codigo="'+c.codigo+'" name="crit-'+c.codigo+'" value="'+n+'"'+(String(n)===valorAtual?' checked':'')+'><span>'+n+'</span></label>';
-      }
-      campo = '<div class="rating-row">'+pills+'</div>';
-    } else {
-      campo = '<input type="text" class="crit-input" data-codigo="'+c.codigo+'" value="'+(valorAtual||'').replace(/"/g,'')+'" style="max-width:220px;">';
-    }
-    row.innerHTML = '<span class="nome">'+c.pergunta+' <span class="hint">('+c.pontos+' pts)</span></span>'+campo;
-    wrap.appendChild(row);
-  });
-  wrap.querySelectorAll('.crit-input').forEach(el => el.addEventListener('change', csAtualizarPontuacaoLive));
-}
-
-function csColetarRespostasPerfil(){
-  const respostas = {};
-  document.querySelectorAll('#criterios-perfil-lista select.crit-input').forEach(el => {
-    if(el.value) respostas[el.dataset.codigo] = el.value;
-  });
-  document.querySelectorAll('#criterios-perfil-lista input[type=text].crit-input').forEach(el => {
-    if(el.value) respostas[el.dataset.codigo] = el.value;
-  });
-  document.querySelectorAll('#criterios-perfil-lista input[type=radio].crit-input:checked').forEach(el => {
-    respostas[el.dataset.codigo] = el.value;
-  });
-  return respostas;
-}
-
-function csAtualizarPontuacaoLive(){
-  const respostas = csColetarRespostasPerfil();
-  let total = 0;
-  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
-  document.getElementById('pontuacao-atual').textContent = total + ' / 100';
+  const ja = await csEuCurti(publicacaoId);
+  if(ja){
+    const { error } = await csClient.from('publicacao_votos').delete().eq('publicacao_id', publicacaoId).eq('user_id', user.id);
+    if(error) return { ok:false, error: error.message };
+    return { ok:true, curtido:false };
+  } else {
+    const { error } = await csClient.from('publicacao_votos').insert({ publicacao_id: publicacaoId, user_id: user.id });
+    if(error) return { ok:false, error: error.message };
+    return { ok:true, curtido:true };
+  }
 }
 
 /* ===================== UI comum a todas as paginas ===================== */
@@ -1224,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', async function(){
           <div class="submenu" style="right:0;left:auto;">
             <a href="talentos.html#talentos">Meu curriculo</a>
             <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
-            <a href="comunidade.html">Post</a>
+            <a href="comunidade.html">Comunidade</a>
             <a href="#" id="cs-logout">Sair</a>
           </div>
         </div>
