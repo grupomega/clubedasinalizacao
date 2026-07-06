@@ -166,18 +166,28 @@ const CS_CATEGORIAS_EQUIP = [
   {value:'caminhao_apoio', label:'Caminhao de apoio'},
   {value:'maquinas', label:'Maquinas'},
   {value:'ferramentas', label:'Ferramentas'},
+  {value:'materiais_tintas', label:'Materiais e tintas'},
   {value:'outros', label:'Outros'}
 ];
 
-async function csListEquipamentos({tipoOferta, categoria, uf} = {}){
+async function csListEquipamentos({tipoOferta, categoria, uf, excluirCategoria} = {}){
   const authed = await csIsLogged();
   let q = csClient.from(authed ? 'equipamentos' : 'equipamentos_publicos').select('*').order('criado_em', {ascending:false});
   if(tipoOferta) q = q.eq('tipo_oferta', tipoOferta);
   if(categoria) q = q.eq('categoria', categoria);
+  if(excluirCategoria) q = q.neq('categoria', excluirCategoria);
   if(uf) q = q.eq('estado', uf);
   const { data, error } = await q;
   if(error){ console.error(error); return []; }
   return data;
+}
+
+async function csEquipamentoAleatorio(){
+  const authed = await csIsLogged();
+  const { data, error } = await csClient.from(authed ? 'equipamentos' : 'equipamentos_publicos')
+    .select('*').eq('disponivel', true).limit(50);
+  if(error || !data || data.length === 0){ return null; }
+  return data[Math.floor(Math.random() * data.length)];
 }
 
 async function csUploadFotosEquipamento(fileList){
@@ -436,33 +446,30 @@ async function csExcluirPublicacao(id){
   return { ok:true };
 }
 
-async function csContarCurtidas(publicacaoId){
-  const { data, error } = await csClient.rpc('contar_curtidas', { p_publicacao_id: publicacaoId });
-  if(error){ console.error(error); return 0; }
-  return data || 0;
+async function csObterMediaPost(postId){
+  const { data, error } = await csClient.rpc('obter_media_post', { p_post_id: postId });
+  if(error){ console.error(error); return { media_geral: null, total_avaliacoes: 0 }; }
+  return (data && data[0]) || { media_geral: null, total_avaliacoes: 0 };
 }
 
-async function csEuCurti(publicacaoId){
+async function csMinhaAvaliacaoPost(postId){
   const user = await csGetUser();
-  if(!user) return false;
-  const { data, error } = await csClient.from('publicacao_votos').select('publicacao_id').eq('publicacao_id', publicacaoId).eq('user_id', user.id).maybeSingle();
-  if(error){ console.error(error); return false; }
-  return !!data;
+  if(!user) return null;
+  const { data, error } = await csClient.from('post_avaliacoes').select('*').eq('post_id', postId).eq('avaliador_id', user.id).maybeSingle();
+  if(error){ console.error(error); return null; }
+  return data;
 }
 
-async function csAlternarCurtida(publicacaoId){
+async function csAvaliarPost(postId, execucao, conformidade, organizacao){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
-  const ja = await csEuCurti(publicacaoId);
-  if(ja){
-    const { error } = await csClient.from('publicacao_votos').delete().eq('publicacao_id', publicacaoId).eq('user_id', user.id);
-    if(error) return { ok:false, error: error.message };
-    return { ok:true, curtido:false };
-  } else {
-    const { error } = await csClient.from('publicacao_votos').insert({ publicacao_id: publicacaoId, user_id: user.id });
-    if(error) return { ok:false, error: error.message };
-    return { ok:true, curtido:true };
-  }
+  const { error } = await csClient.from('post_avaliacoes').upsert({
+    post_id: postId, avaliador_id: user.id,
+    criterio_execucao: execucao, criterio_conformidade: conformidade, criterio_organizacao: organizacao,
+    atualizado_em: new Date().toISOString()
+  }, { onConflict: 'post_id,avaliador_id' });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
 }
 
 let CS_CRITERIOS_PERFIL_CACHE = null;
@@ -575,7 +582,7 @@ document.addEventListener('DOMContentLoaded', async function(){
           <div class="submenu" style="right:0;left:auto;">
             <a href="talentos.html#talentos">Meu curriculo</a>
             <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
-            <a href="comunidade.html">Comunidade</a>
+            <a href="comunidade.html">Post</a>
             <a href="#" id="cs-logout">Sair</a>
           </div>
         </div>
