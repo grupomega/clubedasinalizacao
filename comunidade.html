@@ -1128,6 +1128,115 @@ function csAtualizarPontuacaoLive(){
   document.getElementById('pontuacao-atual').textContent = total + ' / 100';
 }
 
+function csFormatarTelefone(v){
+  v = (v || '').replace(/\D/g,'').slice(0,11);
+  if(v.length > 6) return `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  if(v.length > 2) return `(${v.slice(0,2)}) ${v.slice(2)}`;
+  if(v.length > 0) return `(${v}`;
+  return '';
+}
+
+function csAplicarMascaraTelefone(input){
+  input.addEventListener('input', function(){ this.value = csFormatarTelefone(this.value); });
+}
+
+async function csEsqueciSenha(email){
+  const { error } = await csClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/usuarios.html#nova-senha'
+  });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csDefinirNovaSenha(novaSenha){
+  const { error } = await csClient.auth.updateUser({ password: novaSenha });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== MEU PERFIL (afiliado) ===================== */
+
+async function csMeusEquipamentos(){
+  const user = await csGetUser();
+  if(!user) return [];
+  const { data, error } = await csClient.from('equipamentos').select('*').eq('anunciante_id', user.id).order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csMeusPosts(){
+  const user = await csGetUser();
+  if(!user) return [];
+  const { data, error } = await csClient.from('publicacoes').select('*').eq('autor_id', user.id).order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csRegistrarVisualizacao(id){
+  try{ await csClient.rpc('registrar_visualizacao_equipamento', { p_id: id }); }catch(e){}
+}
+async function csRegistrarClique(id){
+  try{ await csClient.rpc('registrar_clique_equipamento', { p_id: id }); }catch(e){}
+}
+async function csAtualizarEquipamento(id, fields){
+  const { error } = await csClient.from('equipamentos').update(fields).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== ADMIN ===================== */
+
+async function csAdminListAfiliados(){
+  const { data, error } = await csClient.from('profiles').select('*').order('nome');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminAlternarBloqueio(id, bloquear){
+  const { error } = await csClient.from('profiles').update({ bloqueado: bloquear }).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListObras(){
+  const { data, error } = await csClient.from('obras').select('*').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirObra(id){
+  const { error } = await csClient.from('obras').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListEquipamentos(){
+  const { data, error } = await csClient.from('equipamentos').select('*').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirEquipamento(id){
+  const { error } = await csClient.from('equipamentos').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListVagas(){
+  const { data, error } = await csClient.from('vagas').select('*, funcoes_catalogo(nome)').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirVaga(id){
+  const { error } = await csClient.from('vagas').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListPosts(){
+  const { data, error } = await csClient.from('publicacoes').select('*, profiles(nome)').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirPost(id){
+  const { error } = await csClient.from('publicacoes').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
 /* ===================== UI comum a todas as paginas ===================== */
 
 document.addEventListener('DOMContentLoaded', async function(){
@@ -1171,13 +1280,16 @@ document.addEventListener('DOMContentLoaded', async function(){
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
       const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
+      const linkAdmin = profile && profile.is_admin_flag ? '<a href="admin.html">Painel administrativo</a>' : '';
       userBox.innerHTML = `
         <div class="nav-item" style="position:relative;">
           <span class="btn btn-outline btn-sm">${avatar}${nome}</span>${pendente}
           <div class="submenu" style="right:0;left:auto;">
+            <a href="perfil.html">Meu perfil</a>
             <a href="talentos.html#talentos">Meu curriculo</a>
             <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
             <a href="comunidade.html">Post</a>
+            ${linkAdmin}
             <a href="#" id="cs-logout">Sair</a>
           </div>
         </div>
