@@ -437,15 +437,19 @@ footer.site-footer .grid{margin-bottom:32px;}
 
 <script>
 document.addEventListener('DOMContentLoaded', async function(){
-  document.querySelectorAll('#perfil-uf, #vaga-uf').forEach(sel => {
-    CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); });
-  });
-  const perfilTelInput = document.getElementById('perfil-telefone');
-  if(perfilTelInput) csAplicarMascaraTelefone(perfilTelInput);
-  const funcoes = await csListFuncoes();
-  document.querySelectorAll('#tal-funcao, #vaga-funcao').forEach(sel => {
-    funcoes.forEach(f => { const o = document.createElement('option'); o.value = f.codigo; o.textContent = f.nome; sel.appendChild(o); });
-  });
+  try {
+    document.querySelectorAll('#perfil-uf, #vaga-uf').forEach(sel => {
+      CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); });
+    });
+    const perfilTelInput = document.getElementById('perfil-telefone');
+    if(perfilTelInput) csAplicarMascaraTelefone(perfilTelInput);
+    const funcoes = await csListFuncoes();
+    document.querySelectorAll('#tal-funcao, #vaga-funcao').forEach(sel => {
+      funcoes.forEach(f => { const o = document.createElement('option'); o.value = f.codigo; o.textContent = f.nome; sel.appendChild(o); });
+    });
+  } catch(erroInicial) {
+    console.error('Falha ao preparar selects (nao afeta os botoes da pagina):', erroInicial);
+  }
 
   async function renderTalentos(){
     const wrap = document.getElementById('lista-talentos');

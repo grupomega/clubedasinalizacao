@@ -412,17 +412,21 @@ footer.site-footer .grid{margin-bottom:32px;}
 
 <script>
 document.addEventListener('DOMContentLoaded', async function(){
-  const sel = document.getElementById('cad-uf');
-  if(sel){ CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); }); }
+  try {
+    const sel = document.getElementById('cad-uf');
+    if(sel){ CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); }); }
 
-  const funcoes = await csListFuncoes();
-  const selFuncao = document.getElementById('cad-funcao');
-  if(selFuncao){ funcoes.forEach(f => { const o = document.createElement('option'); o.value = f.codigo; o.textContent = f.nome; selFuncao.appendChild(o); }); }
+    const funcoes = await csListFuncoes();
+    const selFuncao = document.getElementById('cad-funcao');
+    if(selFuncao){ funcoes.forEach(f => { const o = document.createElement('option'); o.value = f.codigo; o.textContent = f.nome; selFuncao.appendChild(o); }); }
 
-  if(!window.CS_CRITERIOS_PERFIL_CACHE){ window.CS_CRITERIOS_PERFIL_CACHE = await csListCriteriosPerfil(); }
-  if(typeof csRenderCriteriosPerfil === 'function'){ csRenderCriteriosPerfil({}); csAtualizarPontuacaoLive(); }
+    if(!window.CS_CRITERIOS_PERFIL_CACHE){ window.CS_CRITERIOS_PERFIL_CACHE = await csListCriteriosPerfil(); }
+    if(typeof csRenderCriteriosPerfil === 'function'){ csRenderCriteriosPerfil({}); csAtualizarPontuacaoLive(); }
 
-  document.querySelectorAll('#cad-telefone').forEach(csAplicarMascaraTelefone);
+    document.querySelectorAll('#cad-telefone').forEach(csAplicarMascaraTelefone);
+  } catch(erroCadastro) {
+    console.error('Falha ao preparar formulario de cadastro (nao afeta o login):', erroCadastro);
+  }
 
   // deteccao de link de recuperacao de senha (o Supabase adiciona o hash de sessao de recovery)
   if(window.location.hash.includes('type=recovery') || window.location.hash.includes('nova-senha')){
