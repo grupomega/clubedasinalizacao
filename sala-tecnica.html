@@ -1142,6 +1142,75 @@ async function csAdminExcluirPost(id){
   return { ok:true };
 }
 
+/* ===================== CATALOGOS DINAMICOS ===================== */
+
+async function csListSegmentos(){
+  const { data, error } = await csClient.from('segmentos_atuacao').select('*').order('ordem');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csListCategoriasEquipamento(){
+  const { data, error } = await csClient.from('categorias_equipamento').select('*').order('ordem');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminInserirCatalogo(tabela, codigo, nome){
+  const { error } = await csClient.from(tabela).insert({ codigo, nome, ordem: 999 });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminExcluirCatalogo(tabela, codigo){
+  const { error } = await csClient.from(tabela).delete().eq('codigo', codigo);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== ADMIN: PROMOCAO E EDICAO DE PERFIL ===================== */
+
+async function csAdminAlternarAdmin(id, tornarAdmin){
+  const { error } = await csClient.from('profiles').update({ is_admin_flag: tornarAdmin }).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminAtualizarPerfil(id, fields){
+  const { error } = await csClient.from('profiles').update(fields).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== ADMIN: DASHBOARD ===================== */
+
+async function csAdminDashboard(){
+  const [afiliados, equipamentos, talentos] = await Promise.all([
+    csClient.from('profiles').select('id', {count:'exact', head:true}),
+    csClient.from('equipamentos').select('tipo_oferta, categoria, valor_mensal, valor_venda'),
+    csClient.from('professional_profiles').select('funcao_codigo, funcoes_catalogo(nome)').not('funcao_codigo','is',null)
+  ]);
+
+  const eq = equipamentos.data || [];
+  const locacao = eq.filter(e => e.tipo_oferta === 'locacao');
+  const vendaMaquina = eq.filter(e => e.tipo_oferta === 'venda' && e.categoria !== 'materiais_tintas');
+  const vendaMaterial = eq.filter(e => e.tipo_oferta === 'venda' && e.categoria === 'materiais_tintas');
+
+  const somaLocacao = locacao.reduce((s,e) => s + (Number(e.valor_mensal)||0), 0);
+  const somaVendaMaquina = vendaMaquina.reduce((s,e) => s + (Number(e.valor_venda)||0), 0);
+  const somaVendaMaterial = vendaMaterial.reduce((s,e) => s + (Number(e.valor_venda)||0), 0);
+
+  const porFuncao = {};
+  (talentos.data || []).forEach(t => {
+    const nome = t.funcoes_catalogo ? t.funcoes_catalogo.nome : t.funcao_codigo;
+    porFuncao[nome] = (porFuncao[nome] || 0) + 1;
+  });
+
+  return {
+    totalAfiliados: afiliados.count || 0,
+    locacao: { qtd: locacao.length, soma: somaLocacao },
+    vendaMaquina: { qtd: vendaMaquina.length, soma: somaVendaMaquina },
+    vendaMaterial: { qtd: vendaMaterial.length, soma: somaVendaMaterial },
+    talentosPorFuncao: porFuncao
+  };
+}
+
 /* ===================== UI comum a todas as paginas ===================== */
 
 document.addEventListener('DOMContentLoaded', async function(){

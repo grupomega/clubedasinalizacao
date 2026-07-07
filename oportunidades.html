@@ -454,17 +454,18 @@ function addServicoLine(){
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
+  const segmentos = await csListSegmentos();
   document.querySelectorAll('#obra-uf, #filtro-obra-uf').forEach(sel => {
     CS_UFS.forEach(uf => { const o = document.createElement('option'); o.value = uf; o.textContent = uf; sel.appendChild(o); });
   });
   document.querySelectorAll('#obra-segmento, #filtro-obra-segmento').forEach(sel => {
-    CS_SEGMENTOS.forEach(s => { const o = document.createElement('option'); o.value = s.value; o.textContent = s.label; sel.appendChild(o); });
+    segmentos.forEach(s => { const o = document.createElement('option'); o.value = s.codigo; o.textContent = s.nome; sel.appendChild(o); });
   });
   addServicoLine();
   document.getElementById('add-servico').addEventListener('click', addServicoLine);
 
   const segLabel = {};
-  CS_SEGMENTOS.forEach(s => segLabel[s.value] = s.label);
+  segmentos.forEach(s => segLabel[s.codigo] = s.nome);
   const pinColors = {horizontal:'#378ADD', vertical:'#D85A30', defensa:'#1D9E75', conservacao:'#BA7517', cones_placas_obra:'#993556'};
   const CS_UF_CENTROIDS = {"AC": [39.8, 141.3], "AL": [351.5, 147.7], "AM": [107.8, 88.2], "AP": [210.4, 43.6], "BA": [297.1, 181.6], "CE": [325.6, 109.0], "ES": [316.7, 236.8], "GO": [226.6, 204.0], "MA": [272.4, 111.5], "MG": [273.2, 227.6], "MS": [185.8, 245.7], "MT": [180.4, 174.6], "PA": [210.7, 92.0], "PB": [350.7, 124.1], "PE": [339.0, 135.0], "PI": [299.3, 121.9], "PR": [212.9, 282.1], "RJ": [301.3, 259.8], "RN": [351.0, 112.7], "RO": [106.5, 156.2], "RR": [126.7, 41.6], "RS": [194.4, 336.0], "SC": [229.4, 311.0], "SE": [346.1, 154.9], "SP": [236.4, 264.2], "TO": [243.5, 143.5], "DF": [249.3, 202.3]};
 
@@ -1260,6 +1261,75 @@ async function csAdminExcluirPost(id){
   const { error } = await csClient.from('publicacoes').delete().eq('id', id);
   if(error) return { ok:false, error: error.message };
   return { ok:true };
+}
+
+/* ===================== CATALOGOS DINAMICOS ===================== */
+
+async function csListSegmentos(){
+  const { data, error } = await csClient.from('segmentos_atuacao').select('*').order('ordem');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csListCategoriasEquipamento(){
+  const { data, error } = await csClient.from('categorias_equipamento').select('*').order('ordem');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminInserirCatalogo(tabela, codigo, nome){
+  const { error } = await csClient.from(tabela).insert({ codigo, nome, ordem: 999 });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminExcluirCatalogo(tabela, codigo){
+  const { error } = await csClient.from(tabela).delete().eq('codigo', codigo);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== ADMIN: PROMOCAO E EDICAO DE PERFIL ===================== */
+
+async function csAdminAlternarAdmin(id, tornarAdmin){
+  const { error } = await csClient.from('profiles').update({ is_admin_flag: tornarAdmin }).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminAtualizarPerfil(id, fields){
+  const { error } = await csClient.from('profiles').update(fields).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== ADMIN: DASHBOARD ===================== */
+
+async function csAdminDashboard(){
+  const [afiliados, equipamentos, talentos] = await Promise.all([
+    csClient.from('profiles').select('id', {count:'exact', head:true}),
+    csClient.from('equipamentos').select('tipo_oferta, categoria, valor_mensal, valor_venda'),
+    csClient.from('professional_profiles').select('funcao_codigo, funcoes_catalogo(nome)').not('funcao_codigo','is',null)
+  ]);
+
+  const eq = equipamentos.data || [];
+  const locacao = eq.filter(e => e.tipo_oferta === 'locacao');
+  const vendaMaquina = eq.filter(e => e.tipo_oferta === 'venda' && e.categoria !== 'materiais_tintas');
+  const vendaMaterial = eq.filter(e => e.tipo_oferta === 'venda' && e.categoria === 'materiais_tintas');
+
+  const somaLocacao = locacao.reduce((s,e) => s + (Number(e.valor_mensal)||0), 0);
+  const somaVendaMaquina = vendaMaquina.reduce((s,e) => s + (Number(e.valor_venda)||0), 0);
+  const somaVendaMaterial = vendaMaterial.reduce((s,e) => s + (Number(e.valor_venda)||0), 0);
+
+  const porFuncao = {};
+  (talentos.data || []).forEach(t => {
+    const nome = t.funcoes_catalogo ? t.funcoes_catalogo.nome : t.funcao_codigo;
+    porFuncao[nome] = (porFuncao[nome] || 0) + 1;
+  });
+
+  return {
+    totalAfiliados: afiliados.count || 0,
+    locacao: { qtd: locacao.length, soma: somaLocacao },
+    vendaMaquina: { qtd: vendaMaquina.length, soma: somaVendaMaquina },
+    vendaMaterial: { qtd: vendaMaterial.length, soma: somaVendaMaterial },
+    talentosPorFuncao: porFuncao
+  };
 }
 
 /* ===================== UI comum a todas as paginas ===================== */
