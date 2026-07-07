@@ -166,18 +166,28 @@ const CS_CATEGORIAS_EQUIP = [
   {value:'caminhao_apoio', label:'Caminhao de apoio'},
   {value:'maquinas', label:'Maquinas'},
   {value:'ferramentas', label:'Ferramentas'},
+  {value:'materiais_tintas', label:'Materiais e tintas'},
   {value:'outros', label:'Outros'}
 ];
 
-async function csListEquipamentos({tipoOferta, categoria, uf} = {}){
+async function csListEquipamentos({tipoOferta, categoria, uf, excluirCategoria} = {}){
   const authed = await csIsLogged();
   let q = csClient.from(authed ? 'equipamentos' : 'equipamentos_publicos').select('*').order('criado_em', {ascending:false});
   if(tipoOferta) q = q.eq('tipo_oferta', tipoOferta);
   if(categoria) q = q.eq('categoria', categoria);
+  if(excluirCategoria) q = q.neq('categoria', excluirCategoria);
   if(uf) q = q.eq('estado', uf);
   const { data, error } = await q;
   if(error){ console.error(error); return []; }
   return data;
+}
+
+async function csEquipamentoAleatorio(){
+  const authed = await csIsLogged();
+  const { data, error } = await csClient.from(authed ? 'equipamentos' : 'equipamentos_publicos')
+    .select('*').eq('disponivel', true).limit(50);
+  if(error || !data || data.length === 0){ return null; }
+  return data[Math.floor(Math.random() * data.length)];
 }
 
 async function csUploadFotosEquipamento(fileList){
@@ -436,33 +446,200 @@ async function csExcluirPublicacao(id){
   return { ok:true };
 }
 
-async function csContarCurtidas(publicacaoId){
-  const { data, error } = await csClient.rpc('contar_curtidas', { p_publicacao_id: publicacaoId });
-  if(error){ console.error(error); return 0; }
-  return data || 0;
+async function csObterMediaPost(postId){
+  const { data, error } = await csClient.rpc('obter_media_post', { p_post_id: postId });
+  if(error){ console.error(error); return { media_geral: null, total_avaliacoes: 0 }; }
+  return (data && data[0]) || { media_geral: null, total_avaliacoes: 0 };
 }
 
-async function csEuCurti(publicacaoId){
+async function csMinhaAvaliacaoPost(postId){
   const user = await csGetUser();
-  if(!user) return false;
-  const { data, error } = await csClient.from('publicacao_votos').select('publicacao_id').eq('publicacao_id', publicacaoId).eq('user_id', user.id).maybeSingle();
-  if(error){ console.error(error); return false; }
-  return !!data;
+  if(!user) return null;
+  const { data, error } = await csClient.from('post_avaliacoes').select('*').eq('post_id', postId).eq('avaliador_id', user.id).maybeSingle();
+  if(error){ console.error(error); return null; }
+  return data;
 }
 
-async function csAlternarCurtida(publicacaoId){
+async function csAvaliarPost(postId, execucao, conformidade, organizacao){
   const user = await csGetUser();
   if(!user) return { ok:false, error:'nao autenticado' };
-  const ja = await csEuCurti(publicacaoId);
-  if(ja){
-    const { error } = await csClient.from('publicacao_votos').delete().eq('publicacao_id', publicacaoId).eq('user_id', user.id);
-    if(error) return { ok:false, error: error.message };
-    return { ok:true, curtido:false };
-  } else {
-    const { error } = await csClient.from('publicacao_votos').insert({ publicacao_id: publicacaoId, user_id: user.id });
-    if(error) return { ok:false, error: error.message };
-    return { ok:true, curtido:true };
-  }
+  const { error } = await csClient.from('post_avaliacoes').upsert({
+    post_id: postId, avaliador_id: user.id,
+    criterio_execucao: execucao, criterio_conformidade: conformidade, criterio_organizacao: organizacao,
+    atualizado_em: new Date().toISOString()
+  }, { onConflict: 'post_id,avaliador_id' });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+let CS_CRITERIOS_PERFIL_CACHE = null;
+
+function csRenderCriteriosPerfil(respostasAtuais){
+  const wrap = document.getElementById('criterios-perfil-lista');
+  wrap.innerHTML = '';
+  let categoriaAtual = '';
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
+    if(c.categoria !== categoriaAtual){
+      categoriaAtual = c.categoria;
+      const h = document.createElement('div');
+      h.className = 'categoria-header';
+      h.textContent = categoriaAtual;
+      wrap.appendChild(h);
+    }
+    const valorAtual = (respostasAtuais && respostasAtuais[c.codigo]) || '';
+    const row = document.createElement('div');
+    row.className = 'criterio-row';
+    let campo = '';
+    if(c.tipo === 'escolha'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:260px;"><option value="">Nao responder</option>' +
+        c.opcoes.map(o => '<option value="'+o+'"'+(o===valorAtual?' selected':'')+'>'+o+'</option>').join('') + '</select>';
+    } else if(c.tipo === 'boolean'){
+      campo = '<select class="crit-input" data-codigo="'+c.codigo+'" style="max-width:140px;"><option value="">Nao responder</option>' +
+        '<option value="Sim"'+(valorAtual==='Sim'?' selected':'')+'>Sim</option>' +
+        '<option value="Nao"'+(valorAtual==='Nao'?' selected':'')+'>Nao</option></select>';
+    } else if(c.tipo === 'escala'){
+      let pills = '';
+      for(let n=1;n<=5;n++){
+        pills += '<label class="rating-pill"><input type="radio" class="crit-input" data-codigo="'+c.codigo+'" name="crit-'+c.codigo+'" value="'+n+'"'+(String(n)===valorAtual?' checked':'')+'><span>'+n+'</span></label>';
+      }
+      campo = '<div class="rating-row">'+pills+'</div>';
+    } else {
+      campo = '<input type="text" class="crit-input" data-codigo="'+c.codigo+'" value="'+(valorAtual||'').replace(/"/g,'')+'" style="max-width:220px;">';
+    }
+    row.innerHTML = '<span class="nome">'+c.pergunta+' <span class="hint">('+c.pontos+' pts)</span></span>'+campo;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.crit-input').forEach(el => el.addEventListener('change', csAtualizarPontuacaoLive));
+}
+
+function csColetarRespostasPerfil(){
+  const respostas = {};
+  document.querySelectorAll('#criterios-perfil-lista select.crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=text].crit-input').forEach(el => {
+    if(el.value) respostas[el.dataset.codigo] = el.value;
+  });
+  document.querySelectorAll('#criterios-perfil-lista input[type=radio].crit-input:checked').forEach(el => {
+    respostas[el.dataset.codigo] = el.value;
+  });
+  return respostas;
+}
+
+function csAtualizarPontuacaoLive(){
+  const respostas = csColetarRespostasPerfil();
+  let total = 0;
+  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
+  document.getElementById('pontuacao-atual').textContent = total + ' / 100';
+}
+
+function csFormatarTelefone(v){
+  v = (v || '').replace(/\D/g,'').slice(0,11);
+  if(v.length > 6) return `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  if(v.length > 2) return `(${v.slice(0,2)}) ${v.slice(2)}`;
+  if(v.length > 0) return `(${v}`;
+  return '';
+}
+
+function csAplicarMascaraTelefone(input){
+  input.addEventListener('input', function(){ this.value = csFormatarTelefone(this.value); });
+}
+
+async function csEsqueciSenha(email){
+  const { error } = await csClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/usuarios.html#nova-senha'
+  });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csDefinirNovaSenha(novaSenha){
+  const { error } = await csClient.auth.updateUser({ password: novaSenha });
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== MEU PERFIL (afiliado) ===================== */
+
+async function csMeusEquipamentos(){
+  const user = await csGetUser();
+  if(!user) return [];
+  const { data, error } = await csClient.from('equipamentos').select('*').eq('anunciante_id', user.id).order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csMeusPosts(){
+  const user = await csGetUser();
+  if(!user) return [];
+  const { data, error } = await csClient.from('publicacoes').select('*').eq('autor_id', user.id).order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+async function csRegistrarVisualizacao(id){
+  try{ await csClient.rpc('registrar_visualizacao_equipamento', { p_id: id }); }catch(e){}
+}
+async function csRegistrarClique(id){
+  try{ await csClient.rpc('registrar_clique_equipamento', { p_id: id }); }catch(e){}
+}
+async function csAtualizarEquipamento(id, fields){
+  const { error } = await csClient.from('equipamentos').update(fields).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+/* ===================== ADMIN ===================== */
+
+async function csAdminListAfiliados(){
+  const { data, error } = await csClient.from('profiles').select('*').order('nome');
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminAlternarBloqueio(id, bloquear){
+  const { error } = await csClient.from('profiles').update({ bloqueado: bloquear }).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListObras(){
+  const { data, error } = await csClient.from('obras').select('*').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirObra(id){
+  const { error } = await csClient.from('obras').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListEquipamentos(){
+  const { data, error } = await csClient.from('equipamentos').select('*').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirEquipamento(id){
+  const { error } = await csClient.from('equipamentos').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListVagas(){
+  const { data, error } = await csClient.from('vagas').select('*, funcoes_catalogo(nome)').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirVaga(id){
+  const { error } = await csClient.from('vagas').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+async function csAdminListPosts(){
+  const { data, error } = await csClient.from('publicacoes').select('*, profiles(nome)').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function csAdminExcluirPost(id){
+  const { error } = await csClient.from('publicacoes').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
 }
 
 /* ===================== UI comum a todas as paginas ===================== */
@@ -508,7 +685,20 @@ document.addEventListener('DOMContentLoaded', async function(){
       const nome = profile ? profile.nome : user.email;
       const pendente = profile && profile.status_validacao !== 'validado' ? ' <span class="badge badge-alerta">KYC pendente</span>' : '';
       const avatar = profile && profile.foto_url ? `<img src="${profile.foto_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:4px;">` : '<i class="ti ti-user"></i> ';
-      userBox.innerHTML = '<span class="btn btn-outline btn-sm">' + avatar + nome + '</span>' + pendente + ' <a href="#" id="cs-logout" class="btn btn-sm btn-dark">Sair</a>';
+      const linkAdmin = profile && profile.is_admin_flag ? '<a href="admin.html">Painel administrativo</a>' : '';
+      userBox.innerHTML = `
+        <div class="nav-item" style="position:relative;">
+          <span class="btn btn-outline btn-sm">${avatar}${nome}</span>${pendente}
+          <div class="submenu" style="right:0;left:auto;">
+            <a href="perfil.html">Meu perfil</a>
+            <a href="talentos.html#talentos">Meu curriculo</a>
+            <a href="maquinas.html#negociacoes">Minhas negociacoes</a>
+            <a href="comunidade.html">Post</a>
+            ${linkAdmin}
+            <a href="#" id="cs-logout">Sair</a>
+          </div>
+        </div>
+      `;
       const out = document.getElementById('cs-logout');
       if(out) out.addEventListener('click', async (e) => { e.preventDefault(); await csLogout(); location.href = 'index.html'; });
     }
