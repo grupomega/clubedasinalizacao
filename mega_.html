@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRUPO MEGA — Dashboard Comercial</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --mega-laranja: #E8520A;
+  --mega-laranja-cl: #F4885A;
+  --mega-laranja-bg: #FFF3EE;
+  --mega-cinza-esc: #1E1E1E;
+  --mega-cinza-med: #3A3A3A;
+  --mega-cinza-sub: #5A5A5A;
+  --mega-cinza-bdr: #D0D0D0;
+  --mega-cinza-bg: #F5F5F5;
+  --mega-branco: #FFFFFF;
+  --mega-verde: #1A7A3C;
+  --mega-verde-cl: #D4EDDA;
+  --mega-vermelho: #C0392B;
+  --mega-vermelho-cl: #FADBD8;
+  --mega-amarelo: #D4890A;
+  --mega-amarelo-cl: #FEF3CD;
+  --mega-azul: #1A4A6E;
+  --mega-azul-cl: #D1E8F5;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--mega-cinza-esc); color: var(--mega-branco); font-family: var(--font-body); min-height: 100vh; }
+
+/* HEADER */
+.header {
+  background: #111;
+  border-bottom: 3px solid var(--mega-laranja);
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 20px; }
+.logo { font-family: var(--font-display); font-size: 30px; font-weight: 800; color: var(--mega-laranja); letter-spacing: 3px; }
+.logo span { color: #fff; }
+.header-sub { font-family: var(--font-display); font-size: 13px; color: #888; letter-spacing: 2px; text-transform: uppercase; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.live-badge { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--mega-verde); }
+.live-dot { width: 8px; height: 8px; background: var(--mega-verde); border-radius: 50%; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+.last-update { font-family: var(--font-mono); font-size: 11px; color: #666; }
+.btn-refresh { background: var(--mega-laranja); color: #fff; border: none; padding: 7px 16px; border-radius: 4px; font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; }
+.btn-refresh:hover { background: var(--mega-laranja-cl); }
+
+/* TABS */
+.tabs { background: #181818; border-bottom: 1px solid #333; padding: 0 32px; display: flex; gap: 0; }
+.tab { padding: 14px 24px; font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #666; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+.tab:hover { color: #aaa; }
+.tab.active { color: var(--mega-laranja); border-bottom-color: var(--mega-laranja); }
+
+/* MAIN */
+.main { padding: 24px 32px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* KPI GRID */
+.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--mega-cinza-med);
+  border-left: 4px solid var(--mega-laranja);
+  padding: 18px 20px;
+  border-radius: 6px;
+  animation: fadeIn .4s ease;
+}
+.kpi-card.verde { border-left-color: var(--mega-verde); }
+.kpi-card.azul { border-left-color: var(--mega-azul); }
+.kpi-card.amarelo { border-left-color: var(--mega-amarelo); }
+.kpi-card.vermelho { border-left-color: var(--mega-vermelho); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+.kpi-label { font-family: var(--font-display); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 6px; }
+.kpi-value { font-family: var(--font-display); font-size: 36px; font-weight: 800; color: #fff; line-height: 1; }
+.kpi-sub { font-family: var(--font-mono); font-size: 11px; color: #777; margin-top: 4px; }
+
+/* SECTION HEADER */
+.section-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; background: #111;
+  border-left: 5px solid var(--mega-laranja);
+  font-family: var(--font-display); font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; border-radius: 0 4px 4px 0;
+}
+
+/* GRID 2COL */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.card { background: var(--mega-cinza-med); border-radius: 8px; padding: 20px; }
+
+/* TABELA */
+.mega-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.mega-table thead tr { background: #111; }
+.mega-table thead th { padding: 10px 14px; font-family: var(--font-display); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; text-align: left; color: #aaa; white-space: nowrap; }
+.mega-table tbody tr { border-bottom: 1px solid #333; transition: background .15s; }
+.mega-table tbody tr:hover { background: rgba(232,82,10,.08); }
+.mega-table tbody td { padding: 9px 14px; color: #ddd; vertical-align: middle; }
+.col-money { font-family: var(--font-mono); text-align: right; font-weight: 600; color: #fff; }
+.col-center { text-align: center; }
+
+/* BADGES */
+.badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; font-family: var(--font-display); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+.b-proposta { background: var(--mega-azul-cl); color: var(--mega-azul); }
+.b-venda { background: var(--mega-verde-cl); color: var(--mega-verde); }
+.b-perdeu { background: var(--mega-vermelho-cl); color: var(--mega-vermelho); }
+.b-aguarda { background: var(--mega-amarelo-cl); color: var(--mega-amarelo); }
+.b-declinou { background: #2a2a2a; color: #888; }
+.b-naofaz { background: #1a1a1a; color: #666; }
+.b-negoc { background: #e8d5ff; color: #5c2a7e; }
+
+/* PRODUTO BADGES */
+.pb { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--font-display); letter-spacing: .5px; white-space: nowrap; }
+.pb-sv { background: #1a3a5e; color: #7ab8e8; }
+.pb-sh { background: #1a4e2a; color: #7ae896; }
+.pb-sp { background: #4e3a1a; color: #e8c07a; }
+.pb-def { background: #3a1a1a; color: #e87a7a; }
+.pb-plac { background: #2a1a4e; color: #b07ae8; }
+.pb-prod { background: #1a4e4e; color: #7ae8e8; }
+.pb-pav { background: #3a3a1a; color: #e8e87a; }
+.pb-equipe { background: #4e1a3a; color: #e87ab0; }
+.pb-serv { background: #333; color: #aaa; }
+
+/* PIPELINE BAR */
+.pipeline-bar { display: flex; gap: 0; height: 8px; border-radius: 4px; overflow: hidden; margin: 8px 0 4px; }
+.pb-seg { height: 100%; transition: width .5s; }
+.pb-leg { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+.pb-leg-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #aaa; font-family: var(--font-mono); }
+.pb-leg-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+/* HISTORICO */
+.hist-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
+.hist-row:last-child { border-bottom: none; }
+.hist-semana { font-family: var(--font-display); font-size: 12px; color: #aaa; letter-spacing: 1px; }
+.hist-valor { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--mega-laranja); }
+.hist-badge { font-family: var(--font-mono); font-size: 10px; color: #666; }
+
+/* PARCEIRO CARD */
+.parceiro-card { background: #2a2a2a; border-radius: 6px; padding: 16px; border: 1px solid #333; position: relative; }
+.parceiro-card:hover { border-color: var(--mega-laranja); }
+.parceiro-nome { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.parceiro-tipo { font-size: 10px; color: var(--mega-laranja); font-family: var(--font-display); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+.score-bar-wrap { margin-bottom: 6px; }
+.score-label { font-size: 10px; color: #888; font-family: var(--font-mono); display: flex; justify-content: space-between; margin-bottom: 2px; }
+.score-bar { height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+.score-fill { height: 100%; background: var(--mega-laranja); border-radius: 2px; }
+.score-total { font-family: var(--font-display); font-size: 28px; font-weight: 800; color: var(--mega-laranja); text-align: right; margin-top: 8px; }
+.score-total span { font-size: 12px; color: #666; }
+.parceiro-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.ptag { background: #1a1a1a; border: 1px solid #333; padding: 2px 8px; border-radius: 3px; font-size: 10px; color: #aaa; font-family: var(--font-mono); }
+.btn-add-parceiro { background: transparent; border: 1px dashed #555; color: #888; padding: 16px; border-radius: 6px; width: 100%; font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all .2s; }
+.btn-add-parceiro:hover { border-color: var(--mega-laranja); color: var(--mega-laranja); }
+
+/* FORM MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 28px; width: 600px; max-height: 90vh; overflow-y: auto; }
+.modal-title { font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--mega-laranja); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1/-1; }
+.form-label { font-family: var(--font-display); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #888; }
+.form-input, .form-select, .form-textarea {
+  background: #1a1a1a; border: 1px solid #444; border-radius: 4px;
+  padding: 8px 12px; color: #fff; font-family: var(--font-body); font-size: 13px;
+  outline: none; transition: border-color .2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--mega-laranja); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-select option { background: #2a2a2a; }
+.form-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.btn-cancel { background: transparent; border: 1px solid #555; color: #aaa; padding: 9px 20px; border-radius: 4px; cursor: pointer; font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.btn-save { background: var(--mega-laranja); color: #fff; border: none; padding: 9px 24px; border-radius: 4px; cursor: pointer; font-family: var(--font-display); font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+
+/* UPLOAD ZONA */
+.upload-zone {
+  border: 2px dashed #444; border-radius: 8px; padding: 32px;
+  text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 20px;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--mega-laranja); background: rgba(232,82,10,.05); }
+.upload-icon { font-size: 40px; margin-bottom: 10px; }
+.upload-text { font-family: var(--font-display); font-size: 16px; color: #aaa; letter-spacing: 1px; }
+.upload-sub { font-size: 12px; color: #666; margin-top: 4px; font-family: var(--font-mono); }
+
+/* NOTIFICATION */
+.notif { position: fixed; bottom: 24px; right: 24px; background: var(--mega-verde); color: #fff; padding: 12px 20px; border-radius: 6px; font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 1px; z-index: 9999; animation: slideIn .3s ease; display: none; }
+.notif.error { background: var(--mega-vermelho); }
+@keyframes slideIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: #555; font-family: var(--font-display); font-size: 16px; letter-spacing: 2px; gap: 12px; }
+.spinner { width: 20px; height: 20px; border: 2px solid #333; border-top-color: var(--mega-laranja); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MATCHING */
+.match-card { background: #1a1a1a; border-radius: 6px; padding: 14px; border-left: 4px solid var(--mega-laranja); margin-bottom: 10px; }
+.match-rank { font-family: var(--font-display); font-size: 10px; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+.match-nome { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #fff; }
+.match-score { font-family: var(--font-mono); font-size: 20px; color: var(--mega-laranja); float: right; font-weight: 600; }
+
+/* CHART FAKE */
+.bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 80px; padding: 0 4px; }
+.bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.bar-fill { width: 100%; border-radius: 3px 3px 0 0; background: var(--mega-laranja); opacity: .8; min-height: 4px; transition: height .5s; }
+.bar-label { font-family: var(--font-mono); font-size: 8px; color: #666; margin-top: 4px; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">GRUPO <span>MEGA</span></div>
+    <div class="header-sub">Central Comercial · Dashboard Ao Vivo</div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div> AO VIVO</div>
+    <div class="last-update" id="lastUpdate">—</div>
+    <button class="btn-refresh" onclick="loadAll()">↻ ATUALIZAR</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('pipeline')">📊 Pipeline</div>
+  <div class="tab" onclick="switchTab('oportunidades')">🎯 Oportunidades</div>
+  <div class="tab" onclick="switchTab('clientes')">🏢 Clientes</div>
+  <div class="tab" onclick="switchTab('parceiros')">🤝 Parceiros BF</div>
+  <div class="tab" onclick="switchTab('historico')">📅 Histórico</div>
+  <div class="tab" onclick="switchTab('importar')">⬆ Importar</div>
+</nav>
+
+<div class="main">
+
+  <!-- ===== PIPELINE ===== -->
+  <div id="tab-pipeline" class="tab-content active">
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="loading"><div class="spinner"></div> CARREGANDO...</div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-header">Pipeline por Produto</div>
+        <div id="produtoChart"></div>
+      </div>
+      <div class="card">
+        <div class="section-header">Pipeline por Status</div>
+        <div id="statusChart"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header">Distribuição do Pipeline — R$ <span id="totalPipelineHeader">—</span></div>
+      <div class="pipeline-bar" id="pipelineBar"></div>
+      <div class="pb-leg" id="pipelineLeg"></div>
+    </div>
+  </div>
+
+  <!-- ===== OPORTUNIDADES ===== -->
+  <div id="tab-oportunidades" class="tab-content">
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select class="form-select" id="filtroStatus" onchange="renderOportunidades()" style="width:180px">
+        <option value="">Todos os Status</option>
+        <option>Proposta Enviada</option>
+        <option>Em Negociação</option>
+        <option>Venda Efetuada</option>
+        <option>Aguardando Retorno</option>
+        <option>Perdemos</option>
+        <option>Declinamos</option>
+        <option>Não Fazemos</option>
+      </select>
+      <select class="form-select" id="filtroProduto" onchange="renderOportunidades()" style="width:200px">
+        <option value="">Todos os Produtos</option>
+        <option>Sinalização Vertical</option>
+        <option>Sinalização Horizontal</option>
+        <option>Sinalização Provisória</option>
+        <option>Defensas Metálicas</option>
+        <option>Placas de Obras</option>
+        <option>Produtos (Cones/Tachas/etc)</option>
+        <option>Restauração de Pavimento</option>
+        <option>Fornecimento de Equipe</option>
+        <option>Serviços Diversos</option>
+      </select>
+      <select class="form-select" id="filtroSemana" onchange="renderOportunidades()" style="width:200px">
+        <option value="">Todas as Semanas</option>
+        <option value="2026-05-25">Semana 25/Mai</option>
+        <option value="2026-06-29">Semana 29/Jun</option>
+      </select>
+      <div style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:#666" id="countOport"></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="mega-table" id="tabelaOportunidades">
+        <thead><tr>
+          <th>Cliente</th><th>Projeto</th><th>Produto</th><th>Status</th>
+          <th>Prazo</th><th class="col-money">Valor</th><th>Semana</th>
+        </tr></thead>
+        <tbody id="tbodyOport"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>CARREGANDO</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== CLIENTES ===== -->
+  <div id="tab-clientes" class="tab-content">
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <select class="form-select" id="filtroTipoCliente" onchange="renderClientes()" style="width:180px">
+        <option value="">Todos os Tipos</option>
+        <option>Concessionária</option>
+        <option>Construtora</option>
+        <option>Prefeitura</option>
+      </select>
+      <select class="form-select" id="filtroCadastro" onchange="renderClientes()" style="width:200px">
+        <option value="">Todos os Cadastros</option>
+        <option>Portfólio Enviado</option>
+        <option>Cadastro Solicitado</option>
+        <option>Cadastro Homologado</option>
+        <option>Sem Cadastro</option>
+      </select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="mega-table">
+        <thead><tr>
+          <th>Cliente</th><th>Tipo</th><th>Grupo</th><th>Cadastro</th>
+          <th class="col-center">Concessões</th><th>Contatos</th><th class="col-center">Prioridade</th>
+        </tr></thead>
+        <tbody id="tbodyClientes"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>CARREGANDO</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== PARCEIROS ===== -->
+  <div id="tab-parceiros" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-family:var(--font-display);font-size:13px;color:#888;letter-spacing:2px;text-transform:uppercase">Sistema de Matching</div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:#fff">Parceiros BF por Produto</div>
+      </div>
+      <button class="btn-refresh" onclick="openModalParceiro()">+ NOVO PARCEIRO</button>
+    </div>
+
+    <!-- MATCHING TOOL -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-header">🎯 Matching — Melhor Parceiro para o Contrato</div>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group">
+          <label class="form-label">Produto do Contrato</label>
+          <select class="form-select" id="matchProduto" style="width:220px">
+            <option value="">Selecione o produto</option>
+            <option>Sinalização Vertical</option>
+            <option>Sinalização Horizontal</option>
+            <option>Sinalização Provisória</option>
+            <option>Defensas Metálicas</option>
+            <option>Placas de Obras</option>
+            <option>Restauração de Pavimento</option>
+            <option>Fornecimento de Equipe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado da Obra</label>
+          <select class="form-select" id="matchEstado" style="width:120px">
+            <option value="">Qualquer</option>
+            <option>SP</option><option>MG</option><option>RJ</option>
+            <option>GO</option><option>PR</option><option>RS</option>
+            <option>MT</option><option>MS</option><option>BA</option>
+          </select>
+        </div>
+        <button class="btn-refresh" onclick="runMatching()">ENCONTRAR PARCEIRO</button>
+      </div>
+      <div id="matchResult" style="margin-top:16px"></div>
+    </div>
+
+    <div class="grid-3" id="gridParceiros">
+      <div class="loading"><div class="spinner"></div>CARREGANDO</div>
+    </div>
+  </div>
+
+  <!-- ===== HISTÓRICO ===== -->
+  <div id="tab-historico" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-header">Evolução do Pipeline</div>
+        <div id="histChart" style="padding:10px 0"></div>
+        <div id="histLista"></div>
+      </div>
+      <div class="card">
+        <div class="section-header">Evolução da Base de Prospecção</div>
+        <div id="prospChart" style="padding:10px 0"></div>
+        <div id="prospLista"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header">Relatórios Registrados</div>
+      <table class="mega-table">
+        <thead><tr>
+          <th>Semana</th><th class="col-center">Construtoras</th>
+          <th class="col-center">Concessionárias</th><th class="col-center">Propostas</th>
+          <th class="col-money">Pipeline Total</th><th>Notas</th>
+        </tr></thead>
+        <tbody id="tbodyRelatorios"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== IMPORTAR ===== -->
+  <div id="tab-importar" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-header">Registrar Nova Semana</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Semana Início</label>
+            <input type="date" class="form-input" id="impSemanaIni">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Semana Fim</label>
+            <input type="date" class="form-input" id="impSemanaFim">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Construtoras Prospectadas</label>
+            <input type="number" class="form-input" id="impConstrutoras" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Concessionárias Prospectadas</label>
+            <input type="number" class="form-input" id="impConcess" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Propostas Enviadas</label>
+            <input type="number" class="form-input" id="impPropostas" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor Total Pipeline (R$)</label>
+            <input type="number" class="form-input" id="impValor" placeholder="0.00">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Notas / Destaques da Semana</label>
+            <textarea class="form-textarea" id="impNotas" placeholder="Ex: Primeira venda fechada com Elovias R$96.968..."></textarea>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn-save" onclick="salvarRelatorio()" style="width:100%">REGISTRAR SEMANA</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">Adicionar Oportunidade</div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Cliente</label>
+            <select class="form-select" id="novaOportCliente"></select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Nome do Projeto / TR</label>
+            <input type="text" class="form-input" id="novaOportNome" placeholder="Ex: EcoRodovias - Sin. Vertical Capixaba Norte">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Produto</label>
+            <select class="form-select" id="novaOportProduto">
+              <option>Sinalização Vertical</option>
+              <option>Sinalização Horizontal</option>
+              <option>Sinalização Provisória</option>
+              <option>Defensas Metálicas</option>
+              <option>New Jersey</option>
+              <option>Placas de Obras</option>
+              <option>Produtos (Cones/Tachas/etc)</option>
+              <option>Restauração de Pavimento</option>
+              <option>Fornecimento de Equipe</option>
+              <option>Serviços Diversos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="novaOportStatus">
+              <option>Projeto Recebido</option>
+              <option>Proposta Enviada</option>
+              <option>Em Negociação</option>
+              <option>Venda Efetuada</option>
+              <option>Perdemos</option>
+              <option>Não Fazemos</option>
+              <option>Declinamos</option>
+              <option>Aguardando Retorno</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor (R$)</label>
+            <input type="number" class="form-input" id="novaOportValor" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prazo</label>
+            <input type="date" class="form-input" id="novaOportPrazo">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Observações</label>
+            <textarea class="form-textarea" id="novaOportObs" placeholder="Contexto, contatos, próximos passos..."></textarea>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn-save" onclick="salvarOportunidade()" style="width:100%">ADICIONAR OPORTUNIDADE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- MODAL PARCEIRO -->
+<div class="modal-overlay" id="modalParceiro">
+  <div class="modal">
+    <div class="modal-title">Novo Parceiro BF</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Nome do Parceiro</label>
+        <input type="text" class="form-input" id="parNome" placeholder="Ex: BF Sinalização SP">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="parTipo">
+          <option>BF</option><option>Subcontratado</option><option>Fornecedor</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contato</label>
+        <input type="text" class="form-input" id="parContato" placeholder="Nome do contato">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Score Qualidade (1-10)</label>
+        <input type="number" class="form-input" id="parQual" min="1" max="10" value="7">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Score Preço (1-10)</label>
+        <input type="number" class="form-input" id="parPreco" min="1" max="10" value="7">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Score Prazo (1-10)</label>
+        <input type="number" class="form-input" id="parPrazo" min="1" max="10" value="7">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Especialidades (separadas por vírgula)</label>
+        <input type="text" class="form-input" id="parEspec" placeholder="Sinalização Vertical, Defensas Metálicas">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Estados de Atuação (separados por vírgula)</label>
+        <input type="text" class="form-input" id="parEstados" placeholder="SP, MG, RJ">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Observações</label>
+        <textarea class="form-textarea" id="parObs"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModalParceiro()">CANCELAR</button>
+      <button class="btn-save" onclick="salvarParceiro()">SALVAR PARCEIRO</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+const SUPA_URL = 'https://bbzasfojffnummyazgbl.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiemFzZm9qZmZudW1teWF6Z2JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwODE3ODgsImV4cCI6MjA5ODY1Nzc4OH0.qwKBqdXsas1Vv6MBi7iOWKYcfTDmGdZlb22Nebm1wQI';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let allOportunidades = [];
+let allClientes = [];
+let allParceiros = [];
+let allRelatorios = [];
+
+// ===================== UTILS =====================
+function fmt(v) {
+  if (!v && v !== 0) return '—';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtM(v) {
+  if (!v && v !== 0) return '—';
+  const n = Number(v);
+  if (n >= 1e6) return 'R$ ' + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return 'R$ ' + (n/1e3).toFixed(0) + 'K';
+  return fmt(v);
+}
+function showNotif(msg, type='ok') {
+  const n = document.getElementById('notif');
+  n.textContent = msg; n.className = 'notif' + (type==='error'?' error':'');
+  n.style.display='block'; setTimeout(()=>n.style.display='none', 3500);
+}
+function badgeStatus(s) {
+  const m = {
+    'Proposta Enviada':'b-proposta','Venda Efetuada':'b-venda','Perdemos':'b-perdeu',
+    'Aguardando Retorno':'b-aguarda','Declinamos':'b-declinou','Não Fazemos':'b-naofaz',
+    'Em Negociação':'b-negoc','Projeto Recebido':'b-aguarda'
+  };
+  return `<span class="badge ${m[s]||'b-declinou'}">${s}</span>`;
+}
+function badgeProduto(p) {
+  const m = {
+    'Sinalização Vertical':'pb-sv','Sinalização Horizontal':'pb-sh',
+    'Sinalização Provisória':'pb-sp','Defensas Metálicas':'pb-def',
+    'Placas de Obras':'pb-plac','Produtos (Cones/Tachas/etc)':'pb-prod',
+    'Restauração de Pavimento':'pb-pav','Fornecimento de Equipe':'pb-equipe',
+    'Serviços Diversos':'pb-serv','New Jersey':'pb-def'
+  };
+  return `<span class="pb ${m[p]||'pb-serv'}">${p}</span>`;
+}
+function badgePrior(p) {
+  const m = {'Alta':'b-perdeu','Média':'b-aguarda','Baixa':'b-declinou'};
+  return `<span class="badge ${m[p]||'b-declinou'}">${p||'—'}</span>`;
+}
+function badgeCadastro(c) {
+  const m = {
+    'Cadastro Homologado':'b-venda','Cadastro Solicitado':'b-aguarda',
+    'Portfólio Enviado':'b-proposta','Sem Cadastro':'b-declinou'
+  };
+  return `<span class="badge ${m[c]||'b-declinou'}">${c}</span>`;
+}
+
+// ===================== TABS =====================
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  const tabs = ['pipeline','oportunidades','clientes','parceiros','historico','importar'];
+  const idx = tabs.indexOf(id);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ===================== LOAD ALL =====================
+async function loadAll() {
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+  await Promise.all([loadOportunidades(), loadClientes(), loadParceiros(), loadRelatorios()]);
+  renderPipeline();
+  renderOportunidades();
+  renderClientes();
+  renderParceiros();
+  renderHistorico();
+  populateClienteSelect();
+}
+
+async function loadOportunidades() {
+  const {data} = await sb.from('oportunidades').select('*, clientes(nome,tipo)').order('valor', {ascending:false});
+  allOportunidades = data || [];
+}
+async function loadClientes() {
+  const {data} = await sb.from('clientes').select('*').order('nome');
+  allClientes = data || [];
+}
+async function loadParceiros() {
+  const {data} = await sb.from('parceiros').select('*').order('score_total', {ascending:false});
+  allParceiros = data || [];
+}
+async function loadRelatorios() {
+  const {data} = await sb.from('relatorios_semanais').select('*').order('semana_inicio');
+  allRelatorios = data || [];
+}
+
+// ===================== PIPELINE =====================
+function renderPipeline() {
+  const ops = allOportunidades;
+  const total = ops.reduce((s,o)=>s+(o.valor||0),0);
+  const propostas = ops.filter(o=>o.status==='Proposta Enviada').reduce((s,o)=>s+(o.valor||0),0);
+  const vendas = ops.filter(o=>o.status==='Venda Efetuada').reduce((s,o)=>s+(o.valor||0),0);
+  const countPropostas = ops.filter(o=>o.status==='Proposta Enviada').length;
+  const perdemos = ops.filter(o=>o.status==='Perdemos').reduce((s,o)=>s+(o.valor||0),0);
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Pipeline Total</div><div class="kpi-value">${fmtM(total)}</div><div class="kpi-sub">${ops.filter(o=>o.valor).length} oportunidades com valor</div></div>
+    <div class="kpi-card verde"><div class="kpi-label">Vendas Fechadas</div><div class="kpi-value">${fmtM(vendas)}</div><div class="kpi-sub">${ops.filter(o=>o.status==='Venda Efetuada').length} contratos</div></div>
+    <div class="kpi-card azul"><div class="kpi-label">Propostas Enviadas</div><div class="kpi-value">${fmtM(propostas)}</div><div class="kpi-sub">${countPropostas} propostas ativas</div></div>
+    <div class="kpi-card amarelo"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value">${allClientes.length}</div><div class="kpi-sub">${allClientes.filter(c=>c.cadastro_status==='Cadastro Homologado').length} homologados</div></div>
+    <div class="kpi-card vermelho"><div class="kpi-label">Perdemos</div><div class="kpi-value">${fmtM(perdemos)}</div><div class="kpi-sub">Oportunidades perdidas</div></div>
+  `;
+
+  // Chart por produto
+  const porProduto = {};
+  ops.forEach(o=>{ if(o.valor){ porProduto[o.produto]=(porProduto[o.produto]||0)+o.valor; }});
+  const sortedProd = Object.entries(porProduto).sort((a,b)=>b[1]-a[1]);
+  const maxProd = sortedProd[0]?.[1]||1;
+  document.getElementById('produtoChart').innerHTML = `
+    <div class="bar-chart">${sortedProd.map(([k,v])=>`
+      <div class="bar-col">
+        <div class="bar-fill" style="height:${Math.max(4,v/maxProd*70)}px;background:var(--mega-laranja)" title="${k}: ${fmt(v)}"></div>
+        <div class="bar-label">${k.replace('Sinalização ','Sin.').substring(0,8)}</div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:10px">${sortedProd.slice(0,5).map(([k,v])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #333">
+        <span style="font-size:11px;color:#aaa">${k}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:#fff">${fmtM(v)}</span>
+      </div>`).join('')}
+    </div>
+  `;
+
+  // Chart por status
+  const porStatus = {};
+  ops.forEach(o=>{ if(o.valor){ porStatus[o.status]=(porStatus[o.status]||0)+o.valor; }});
+  const sortedStat = Object.entries(porStatus).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('statusChart').innerHTML = `
+    <div style="margin-top:10px">${sortedStat.map(([k,v])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #333">
+        <span>${badgeStatus(k)}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;color:#fff">${fmtM(v)}</span>
+      </div>`).join('')}
+    </div>
+  `;
+
+  // Pipeline bar
+  const colors = ['#E8520A','#1A7A3C','#1A4A6E','#D4890A','#C0392B','#5C2A7E'];
+  let barHTML = '', legHTML = '';
+  sortedProd.forEach(([k,v],i)=>{
+    const pct = total > 0 ? (v/total*100).toFixed(1) : 0;
+    barHTML += `<div class="pb-seg" style="width:${pct}%;background:${colors[i%colors.length]}" title="${k}: ${pct}%"></div>`;
+    legHTML += `<div class="pb-leg-item"><div class="pb-leg-dot" style="background:${colors[i%colors.length]}"></div>${k.substring(0,20)} ${pct}%</div>`;
+  });
+  document.getElementById('totalPipelineHeader').textContent = fmtM(total);
+  document.getElementById('pipelineBar').innerHTML = barHTML;
+  document.getElementById('pipelineLeg').innerHTML = legHTML;
+}
+
+// ===================== OPORTUNIDADES =====================
+function renderOportunidades() {
+  const filtStatus = document.getElementById('filtroStatus').value;
+  const filtProd = document.getElementById('filtroProduto').value;
+  const filtSem = document.getElementById('filtroSemana').value;
+  let ops = allOportunidades;
+  if (filtStatus) ops = ops.filter(o=>o.status===filtStatus);
+  if (filtProd) ops = ops.filter(o=>o.produto===filtProd);
+  if (filtSem) ops = ops.filter(o=>o.semana_referencia===filtSem);
+  document.getElementById('countOport').textContent = `${ops.length} registros · ${fmtM(ops.reduce((s,o)=>s+(o.valor||0),0))}`;
+  const body = document.getElementById('tbodyOport');
+  if (!ops.length) { body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:#555">Nenhuma oportunidade encontrada</td></tr>'; return; }
+  body.innerHTML = ops.map(o=>`<tr>
+    <td><strong style="color:#fff">${o.clientes?.nome||'—'}</strong><br><span style="font-size:10px;color:#666">${o.clientes?.tipo||''}</span></td>
+    <td style="max-width:260px;font-size:11px;color:#ccc">${o.nome_projeto}</td>
+    <td>${badgeProduto(o.produto)}</td>
+    <td>${badgeStatus(o.status)}</td>
+    <td style="font-family:var(--font-mono);font-size:11px;color:#888">${o.prazo?new Date(o.prazo).toLocaleDateString('pt-BR'):'—'}</td>
+    <td class="col-money" style="color:${o.status==='Venda Efetuada'?'var(--mega-verde)':o.status==='Perdemos'?'var(--mega-vermelho)':'#fff'}">${fmt(o.valor)}</td>
+    <td style="font-family:var(--font-mono);font-size:10px;color:#666">${o.semana_referencia?new Date(o.semana_referencia).toLocaleDateString('pt-BR'):'—'}</td>
+  </tr>`).join('');
+}
+
+// ===================== CLIENTES =====================
+function renderClientes() {
+  const filtTipo = document.getElementById('filtroTipoCliente').value;
+  const filtCad = document.getElementById('filtroCadastro').value;
+  let cls = allClientes;
+  if (filtTipo) cls = cls.filter(c=>c.tipo===filtTipo);
+  if (filtCad) cls = cls.filter(c=>c.cadastro_status===filtCad);
+  const body = document.getElementById('tbodyClientes');
+  if (!cls.length) { body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:#555">Nenhum cliente</td></tr>'; return; }
+  body.innerHTML = cls.map(c=>{
+    const contatos = Array.isArray(c.contatos) ? c.contatos : (typeof c.contatos==='string'?JSON.parse(c.contatos||'[]'):[]);
+    const contatoStr = contatos.slice(0,2).map(ct=>ct.nome).filter(Boolean).join(', ') || '—';
+    return `<tr>
+      <td><strong style="color:#fff">${c.nome}</strong></td>
+      <td><span class="badge ${c.tipo==='Concessionária'?'b-proposta':c.tipo==='Construtora'?'b-aguarda':'b-declinou'}">${c.tipo}</span></td>
+      <td style="font-size:11px;color:#888">${c.grupo||'—'}</td>
+      <td>${badgeCadastro(c.cadastro_status)}</td>
+      <td class="col-center" style="font-family:var(--font-mono);color:#aaa">${c.total_concessoes||'—'}</td>
+      <td style="font-size:11px;color:#aaa">${contatoStr}</td>
+      <td class="col-center">${badgePrior(c.prioridade)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===================== PARCEIROS =====================
+function renderParceiros() {
+  const grid = document.getElementById('gridParceiros');
+  if (!allParceiros.length) {
+    grid.innerHTML = `
+      <div></div>
+      <button class="btn-add-parceiro" onclick="openModalParceiro()">+ Cadastrar Primeiro Parceiro BF</button>
+      <div></div>
+    `;
+    return;
+  }
+  grid.innerHTML = allParceiros.map((p,i)=>`
+    <div class="parceiro-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:10px;color:#555;font-family:var(--font-mono)">#${i+1} · ${p.tipo}</div>
+          <div class="parceiro-nome">${p.nome}</div>
+        </div>
+        <div class="score-total">${Number(p.score_total||0).toFixed(1)}<span>/10</span></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>Qualidade</span><span>${p.score_qualidade}/10</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:${(p.score_qualidade||0)*10}%"></div></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>Preço</span><span>${p.score_preco}/10</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:${(p.score_preco||0)*10}%;background:var(--mega-azul)"></div></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>Prazo</span><span>${p.score_prazo}/10</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:${(p.score_prazo||0)*10}%;background:var(--mega-verde)"></div></div>
+      </div>
+      ${p.especialidades?.length ? `<div class="parceiro-tags">${p.especialidades.map(e=>`<span class="ptag">${e}</span>`).join('')}</div>` : ''}
+      ${p.estados_atuacao?.length ? `<div style="margin-top:6px;font-size:10px;color:#666;font-family:var(--font-mono)">${p.estados_atuacao.join(' · ')}</div>` : ''}
+      ${p.observacoes ? `<div style="margin-top:8px;font-size:11px;color:#777;font-style:italic">${p.observacoes}</div>` : ''}
+    </div>
+  `).join('') + `<button class="btn-add-parceiro" onclick="openModalParceiro()">+ Novo Parceiro</button>`;
+}
+
+// ===================== MATCHING =====================
+function runMatching() {
+  const produto = document.getElementById('matchProduto').value;
+  const estado = document.getElementById('matchEstado').value;
+  const div = document.getElementById('matchResult');
+  if (!produto) { div.innerHTML='<div style="color:#666;font-size:12px">Selecione um produto</div>'; return; }
+  let parceiros = allParceiros.filter(p=>p.ativo);
+  if (estado) parceiros = parceiros.filter(p=>!p.estados_atuacao||p.estados_atuacao.includes(estado));
+  if (!parceiros.length) { div.innerHTML='<div style="color:var(--mega-vermelho);font-size:12px">Nenhum parceiro encontrado para este filtro</div>'; return; }
+  // Score por especialidade
+  const ranked = parceiros.map(p=>{
+    let bonus = 0;
+    if (p.especialidades?.includes(produto)) bonus = 2;
+    return {...p, scoreEfetivo: Number(p.score_total||0) + bonus};
+  }).sort((a,b)=>b.scoreEfetivo-a.scoreEfetivo);
+  div.innerHTML = `
+    <div style="font-family:var(--font-display);font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Ranking para: ${produto}${estado?' · '+estado:''}</div>
+    ${ranked.slice(0,3).map((p,i)=>`
+      <div class="match-card" style="border-left-color:${['var(--mega-laranja)','#aaa','#cd7f32'][i]}">
+        <div class="match-rank">${['🥇 1º','🥈 2º','🥉 3º'][i]} lugar</div>
+        <div style="display:flex;justify-content:space-between">
+          <div class="match-nome">${p.nome}</div>
+          <div class="match-score">${p.scoreEfetivo.toFixed(1)}</div>
+        </div>
+        <div style="font-size:10px;color:#666;font-family:var(--font-mono);margin-top:4px">Q:${p.score_qualidade} · P:${p.score_preco} · Prazo:${p.score_prazo}${p.especialidades?.includes(produto)?' · ✓ especialidade':''}</div>
+      </div>`).join('')}
+  `;
+}
+
+// ===================== HISTÓRICO =====================
+function renderHistorico() {
+  const lista = document.getElementById('histLista');
+  const prosp = document.getElementById('prospLista');
+  const tbody = document.getElementById('tbodyRelatorios');
+  if (!allRelatorios.length) {
+    lista.innerHTML = '<div style="color:#555;padding:10px">Nenhum relatório registrado</div>';
+    return;
+  }
+  // Pipeline chart simples
+  const maxVal = Math.max(...allRelatorios.map(r=>r.valor_total_pipeline||0));
+  document.getElementById('histChart').innerHTML = `<div class="bar-chart">${
+    allRelatorios.map(r=>`<div class="bar-col">
+      <div class="bar-fill" style="height:${Math.max(4,(r.valor_total_pipeline||0)/maxVal*70)}px"></div>
+      <div class="bar-label">${new Date(r.semana_inicio+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+    </div>`).join('')}
+  </div>`;
+  lista.innerHTML = allRelatorios.map(r=>`<div class="hist-row">
+    <div><div class="hist-semana">${new Date(r.semana_inicio+'T12:00:00').toLocaleDateString('pt-BR')} → ${new Date(r.semana_fim+'T12:00:00').toLocaleDateString('pt-BR')}</div>
+    <div style="font-size:11px;color:#555">${r.notas||''}</div></div>
+    <div class="hist-valor">${fmtM(r.valor_total_pipeline)}</div>
+  </div>`).join('');
+
+  const maxProsp = Math.max(...allRelatorios.map(r=>r.total_construtoras_prospectadas||0));
+  document.getElementById('prospChart').innerHTML = `<div class="bar-chart">${
+    allRelatorios.map(r=>`<div class="bar-col">
+      <div class="bar-fill" style="height:${Math.max(4,(r.total_construtoras_prospectadas||0)/Math.max(maxProsp,1)*70)}px;background:var(--mega-azul)"></div>
+      <div class="bar-label">${new Date(r.semana_inicio+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+    </div>`).join('')}
+  </div>`;
+  prosp.innerHTML = allRelatorios.map(r=>`<div class="hist-row">
+    <div class="hist-semana">${new Date(r.semana_inicio+'T12:00:00').toLocaleDateString('pt-BR')}</div>
+    <div><span style="color:var(--mega-azul);font-family:var(--font-mono)">${r.total_construtoras_prospectadas} construtoras</span> · <span style="color:var(--mega-laranja);font-family:var(--font-mono)">${r.total_concessionarias_prospectadas} concessionárias</span></div>
+  </div>`).join('');
+
+  tbody.innerHTML = allRelatorios.map(r=>`<tr>
+    <td style="font-family:var(--font-mono);font-size:11px">${new Date(r.semana_inicio+'T12:00:00').toLocaleDateString('pt-BR')} – ${new Date(r.semana_fim+'T12:00:00').toLocaleDateString('pt-BR')}</td>
+    <td class="col-center" style="font-family:var(--font-mono)">${r.total_construtoras_prospectadas}</td>
+    <td class="col-center" style="font-family:var(--font-mono)">${r.total_concessionarias_prospectadas}</td>
+    <td class="col-center" style="font-family:var(--font-mono)">${r.total_propostas_enviadas}</td>
+    <td class="col-money">${fmt(r.valor_total_pipeline)}</td>
+    <td style="font-size:11px;color:#888">${r.notas||'—'}</td>
+  </tr>`).join('');
+}
+
+// ===================== POPULATE SELECT =====================
+function populateClienteSelect() {
+  const sel = document.getElementById('novaOportCliente');
+  sel.innerHTML = '<option value="">Selecione o cliente</option>' +
+    allClientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+// ===================== SALVAR =====================
+async function salvarRelatorio() {
+  const obj = {
+    semana_inicio: document.getElementById('impSemanaIni').value,
+    semana_fim: document.getElementById('impSemanaFim').value,
+    total_construtoras_prospectadas: parseInt(document.getElementById('impConstrutoras').value)||0,
+    total_concessionarias_prospectadas: parseInt(document.getElementById('impConcess').value)||0,
+    total_propostas_enviadas: parseInt(document.getElementById('impPropostas').value)||0,
+    valor_total_pipeline: parseFloat(document.getElementById('impValor').value)||0,
+    notas: document.getElementById('impNotas').value
+  };
+  if (!obj.semana_inicio || !obj.semana_fim) { showNotif('Preencha as datas', 'error'); return; }
+  const {error} = await sb.from('relatorios_semanais').insert(obj);
+  if (error) { showNotif('Erro: ' + error.message, 'error'); return; }
+  showNotif('✓ Semana registrada com sucesso!');
+  await loadAll();
+}
+
+async function salvarOportunidade() {
+  const obj = {
+    cliente_id: document.getElementById('novaOportCliente').value,
+    nome_projeto: document.getElementById('novaOportNome').value,
+    produto: document.getElementById('novaOportProduto').value,
+    status: document.getElementById('novaOportStatus').value,
+    valor: parseFloat(document.getElementById('novaOportValor').value)||null,
+    prazo: document.getElementById('novaOportPrazo').value||null,
+    observacoes: document.getElementById('novaOportObs').value,
+    semana_referencia: new Date().toISOString().split('T')[0]
+  };
+  if (!obj.cliente_id || !obj.nome_projeto) { showNotif('Cliente e nome são obrigatórios', 'error'); return; }
+  const {error} = await sb.from('oportunidades').insert(obj);
+  if (error) { showNotif('Erro: ' + error.message, 'error'); return; }
+  showNotif('✓ Oportunidade adicionada!');
+  await loadAll();
+}
+
+async function salvarParceiro() {
+  const espec = document.getElementById('parEspec').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const estados = document.getElementById('parEstados').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const obj = {
+    nome: document.getElementById('parNome').value,
+    tipo: document.getElementById('parTipo').value,
+    contato_nome: document.getElementById('parContato').value,
+    score_qualidade: parseInt(document.getElementById('parQual').value)||7,
+    score_preco: parseInt(document.getElementById('parPreco').value)||7,
+    score_prazo: parseInt(document.getElementById('parPrazo').value)||7,
+    especialidades: espec,
+    estados_atuacao: estados,
+    observacoes: document.getElementById('parObs').value
+  };
+  if (!obj.nome) { showNotif('Nome obrigatório', 'error'); return; }
+  const {error} = await sb.from('parceiros').insert(obj);
+  if (error) { showNotif('Erro: ' + error.message, 'error'); return; }
+  showNotif('✓ Parceiro cadastrado!');
+  closeModalParceiro();
+  await loadAll();
+}
+
+// ===================== MODAL =====================
+function openModalParceiro() { document.getElementById('modalParceiro').classList.add('open'); }
+function closeModalParceiro() { document.getElementById('modalParceiro').classList.remove('open'); }
+
+// ===================== AUTO REFRESH =====================
+loadAll();
+setInterval(loadAll, 60000); // refresh a cada 60s
+</script>
+</body>
+</html>
