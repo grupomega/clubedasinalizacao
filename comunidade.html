@@ -1074,13 +1074,13 @@ async function csAvaliarPost(postId, execucao, conformidade, organizacao){
   return { ok:true };
 }
 
-let CS_CRITERIOS_PERFIL_CACHE = null;
+if(typeof window.CS_CRITERIOS_PERFIL_CACHE === 'undefined'){ window.CS_CRITERIOS_PERFIL_CACHE = null; }
 
 function csRenderCriteriosPerfil(respostasAtuais){
   const wrap = document.getElementById('criterios-perfil-lista');
   wrap.innerHTML = '';
   let categoriaAtual = '';
-  CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
+  window.CS_CRITERIOS_PERFIL_CACHE.forEach(c => {
     if(c.categoria !== categoriaAtual){
       categoriaAtual = c.categoria;
       const h = document.createElement('div');
@@ -1131,7 +1131,7 @@ function csColetarRespostasPerfil(){
 function csAtualizarPontuacaoLive(){
   const respostas = csColetarRespostasPerfil();
   let total = 0;
-  CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
+  window.CS_CRITERIOS_PERFIL_CACHE.forEach(c => { if(respostas[c.codigo]) total += c.pontos; });
   document.getElementById('pontuacao-atual').textContent = total + ' / 100';
 }
 
