@@ -455,10 +455,15 @@ document.addEventListener('DOMContentLoaded', async function(){
     esqueciForm.addEventListener('submit', async function(e){
       e.preventDefault();
       const msg = document.getElementById('esqueci-msg');
-      const res = await csEsqueciSenha(document.getElementById('esqueci-email').value.trim());
-      msg.innerHTML = res.ok
-        ? '<div class="notice">Link enviado. Confira seu e-mail (e a caixa de spam) para criar uma nova senha.</div>'
-        : '<div class="notice">Erro: '+res.error+'</div>';
+      try {
+        const res = await csEsqueciSenha(document.getElementById('esqueci-email').value.trim());
+        msg.innerHTML = res.ok
+          ? '<div class="notice">Link enviado. Confira seu e-mail (e a caixa de spam) para criar uma nova senha.</div>'
+          : '<div class="notice">Erro: '+res.error+'</div>';
+      } catch(erro) {
+        console.error(erro);
+        msg.innerHTML = '<div class="notice">Nao foi possivel enviar o link agora. Tente novamente.</div>';
+      }
     });
   }
   const novaSenhaForm = document.getElementById('nova-senha-form');
@@ -466,10 +471,15 @@ document.addEventListener('DOMContentLoaded', async function(){
     novaSenhaForm.addEventListener('submit', async function(e){
       e.preventDefault();
       const msg = document.getElementById('nova-senha-msg');
-      const res = await csDefinirNovaSenha(document.getElementById('nova-senha').value);
-      if(!res.ok){ msg.innerHTML = '<div class="notice">Erro: '+res.error+'</div>'; return; }
-      msg.innerHTML = '<div class="notice">Senha atualizada. Redirecionando...</div>';
-      setTimeout(() => window.location.href = 'index.html', 1500);
+      try {
+        const res = await csDefinirNovaSenha(document.getElementById('nova-senha').value);
+        if(!res.ok){ msg.innerHTML = '<div class="notice">Erro: '+res.error+'</div>'; return; }
+        msg.innerHTML = '<div class="notice">Senha atualizada. Redirecionando...</div>';
+        setTimeout(() => window.location.href = 'index.html', 1500);
+      } catch(erro) {
+        console.error(erro);
+        msg.innerHTML = '<div class="notice">Nao foi possivel atualizar a senha agora. Tente novamente.</div>';
+      }
     });
   }
 
@@ -479,9 +489,14 @@ document.addEventListener('DOMContentLoaded', async function(){
       e.preventDefault();
       const msg = document.getElementById('login-msg');
       msg.innerHTML = '';
-      const res = await csLogin({ login: document.getElementById('login-identificador').value.trim(), password: document.getElementById('login-senha').value });
-      if(!res.ok){ msg.innerHTML = '<div class="notice">'+res.error+'</div>'; return; }
-      window.location.href = 'index.html';
+      try {
+        const res = await csLogin({ login: document.getElementById('login-identificador').value.trim(), password: document.getElementById('login-senha').value });
+        if(!res.ok){ msg.innerHTML = '<div class="notice">'+res.error+'</div>'; return; }
+        window.location.href = 'index.html';
+      } catch(erro) {
+        console.error(erro);
+        msg.innerHTML = '<div class="notice">Nao foi possivel entrar agora (falha inesperada). Tente novamente.</div>';
+      }
     });
   }
 
@@ -491,40 +506,57 @@ document.addEventListener('DOMContentLoaded', async function(){
       e.preventDefault();
       const msg = document.getElementById('cadastro-msg');
       msg.innerHTML = '';
-      const res = await csSignUp({
-        email: document.getElementById('cad-email').value,
-        password: document.getElementById('cad-senha').value,
-        nome: document.getElementById('cad-nome').value,
-        tipoUsuario: document.getElementById('cad-tipo').value,
-        estado: document.getElementById('cad-uf').value,
-        cidade: document.getElementById('cad-cidade').value,
-        telefone: document.getElementById('cad-telefone').value,
-        fotoFile: document.getElementById('cad-foto').files[0] || null
-      });
-      if(!res.ok){ msg.innerHTML = '<div class="notice">'+res.error+'</div>'; return; }
-      if(res.needsEmailConfirm){
-        msg.innerHTML = '<div class="notice">Cadastro criado. Confirme seu e-mail para poder entrar - depois disso, entre e complete o perfil profissional em "Meu curriculo" (os dados desta tela nao puderam ser salvos ainda porque a conta nao esta confirmada).</div>';
-        return;
+      const btnSubmit = cadForm.querySelector('button[type="submit"]');
+      if(btnSubmit) btnSubmit.disabled = true;
+      try {
+        const res = await csSignUp({
+          email: document.getElementById('cad-email').value,
+          password: document.getElementById('cad-senha').value,
+          nome: document.getElementById('cad-nome').value,
+          tipoUsuario: document.getElementById('cad-tipo').value,
+          estado: document.getElementById('cad-uf').value,
+          cidade: document.getElementById('cad-cidade').value,
+          telefone: document.getElementById('cad-telefone').value,
+          fotoFile: document.getElementById('cad-foto').files[0] || null
+        });
+        if(!res.ok){ msg.innerHTML = '<div class="notice">'+res.error+'</div>'; return; }
+        if(res.needsEmailConfirm){
+          msg.innerHTML = '<div class="notice">Cadastro criado. Confirme seu e-mail para poder entrar - depois disso, entre e complete o perfil profissional em "Meu curriculo" (os dados desta tela nao puderam ser salvos ainda porque a conta nao esta confirmada).</div>';
+          return;
+        }
+        const user = await csGetUser();
+        let curriculoUrl = null;
+        const curriculoFile = document.getElementById('cad-curriculo').files[0];
+        if(curriculoFile){
+          try {
+            const up = await csUploadCurriculo(user.id, curriculoFile);
+            if(up.ok) curriculoUrl = up.url;
+          } catch(erroCurriculo) {
+            console.error('Falha ao enviar curriculo (cadastro continua):', erroCurriculo);
+          }
+        }
+        try {
+          const respostas = csColetarRespostasPerfil();
+          await csSalvarPerfilTalento({
+            funcao_codigo: document.getElementById('cad-funcao').value || null,
+            experiencia: document.getElementById('cad-experiencia').value || null,
+            servicos_executados: document.getElementById('cad-servicos-executados').value || null,
+            empresas_trabalhou: document.getElementById('cad-empresas-trabalhou').value || null,
+            mensagem_final: document.getElementById('cad-mensagem-final').value || null,
+            ...(curriculoUrl ? { curriculo_url: curriculoUrl } : {}),
+            respostas_perfil: respostas,
+            visivel: true
+          });
+        } catch(erroPerfil) {
+          console.error('Falha ao salvar perfil profissional (cadastro ja foi criado):', erroPerfil);
+        }
+        window.location.href = 'index.html';
+      } catch(erroCadastroSubmit) {
+        console.error(erroCadastroSubmit);
+        msg.innerHTML = '<div class="notice">Nao foi possivel concluir o cadastro agora (erro: '+(erroCadastroSubmit && erroCadastroSubmit.message ? erroCadastroSubmit.message : 'desconhecido')+'). Verifique sua conexao e tente novamente.</div>';
+      } finally {
+        if(btnSubmit) btnSubmit.disabled = false;
       }
-      const user = await csGetUser();
-      let curriculoUrl = null;
-      const curriculoFile = document.getElementById('cad-curriculo').files[0];
-      if(curriculoFile){
-        const up = await csUploadCurriculo(user.id, curriculoFile);
-        if(up.ok) curriculoUrl = up.url;
-      }
-      const respostas = csColetarRespostasPerfil();
-      await csSalvarPerfilTalento({
-        funcao_codigo: document.getElementById('cad-funcao').value || null,
-        experiencia: document.getElementById('cad-experiencia').value || null,
-        servicos_executados: document.getElementById('cad-servicos-executados').value || null,
-        empresas_trabalhou: document.getElementById('cad-empresas-trabalhou').value || null,
-        mensagem_final: document.getElementById('cad-mensagem-final').value || null,
-        ...(curriculoUrl ? { curriculo_url: curriculoUrl } : {}),
-        respostas_perfil: respostas,
-        visivel: true
-      });
-      window.location.href = 'index.html';
     });
   }
 });
@@ -1013,6 +1045,12 @@ async function csCriarPublicacao(conteudo, imagemFile){
 
 async function csExcluirPublicacao(id){
   const { error } = await csClient.from('publicacoes').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csAtualizarPublicacao(id, fields){
+  const { error } = await csClient.from('publicacoes').update(fields).eq('id', id);
   if(error) return { ok:false, error: error.message };
   return { ok:true };
 }

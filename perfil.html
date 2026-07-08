@@ -411,15 +411,18 @@ document.addEventListener('DOMContentLoaded', async function(){
     if(list.length === 0){ wrap.innerHTML = '<div class="empty-state">Voce ainda nao publicou nenhum anuncio no Balcao de negocios.</div>'; return; }
     const table = document.createElement('table');
     table.className = 'data-table';
-    table.innerHTML = '<thead><tr><th>Anuncio</th><th>Tipo</th><th>Status</th><th>Visualizacoes</th><th>Cliques</th><th>Interessados</th><th></th></tr></thead><tbody></tbody>';
+    table.innerHTML = '<thead><tr><th>Anuncio</th><th>Tipo</th><th>Valor</th><th>Status</th><th>Visualizacoes</th><th>Cliques</th><th>Interessados</th><th></th></tr></thead><tbody></tbody>';
     const tbody = table.querySelector('tbody');
     for(const e of list){
       const interessados = await csContarInteressados(e.id);
       const tipoLabel = e.tipo_oferta === 'locacao' ? 'Locacao' : (e.categoria === 'materiais_tintas' ? 'Venda de material' : 'Venda de maquina');
+      const valorAtual = e.tipo_oferta === 'locacao' ? (e.valor_mensal || '') : (e.valor_venda || '');
       const tr = document.createElement('tr');
+      tr.dataset.id = e.id;
       tr.innerHTML = `
-        <td>${e.equipamento}</td>
+        <td><input type="text" class="edit-equip-nome" value="${(e.equipamento||'').replace(/"/g,'')}" style="min-width:160px;"></td>
         <td>${tipoLabel}</td>
+        <td><input type="number" class="edit-equip-valor" value="${valorAtual}" style="width:110px;"></td>
         <td>
           <select class="sel-disponivel" data-id="${e.id}" style="width:auto;padding:4px 8px;">
             <option value="true" ${e.disponivel ? 'selected':''}>Disponivel</option>
@@ -429,7 +432,11 @@ document.addEventListener('DOMContentLoaded', async function(){
         <td>${e.visualizacoes||0}</td>
         <td>${e.cliques||0}</td>
         <td>${interessados}</td>
-        <td><a href="maquinas.html#negociacoes" class="btn btn-outline btn-sm">Ver propostas</a></td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-outline btn-sm btn-editar-descricao" data-id="${e.id}" data-descricao="${(e.descricao_curta||'').replace(/"/g,'&quot;')}">Descricao</button>
+          <button class="btn btn-dark btn-sm btn-salvar-equip">Salvar</button>
+          <a href="maquinas.html#negociacoes" class="btn btn-outline btn-sm">Propostas</a>
+        </td>
       `;
       tbody.appendChild(tr);
     }
@@ -439,6 +446,30 @@ document.addEventListener('DOMContentLoaded', async function(){
       sel.addEventListener('change', async function(){
         const res = await csAtualizarEquipamento(this.dataset.id, { disponivel: this.value === 'true' });
         if(!res.ok) alert('Erro: ' + res.error);
+      });
+    });
+
+    wrap.querySelectorAll('.btn-editar-descricao').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const novaDescricao = prompt('Descricao do anuncio:', this.dataset.descricao);
+        if(novaDescricao === null) return;
+        this.dataset.descricao = novaDescricao;
+        csAtualizarEquipamento(this.dataset.id, { descricao_curta: novaDescricao }).then(res => {
+          if(!res.ok) alert('Erro: ' + res.error);
+        });
+      });
+    });
+
+    wrap.querySelectorAll('.btn-salvar-equip').forEach(btn => {
+      btn.addEventListener('click', async function(){
+        const tr = this.closest('tr');
+        const id = tr.dataset.id;
+        const nome = tr.querySelector('.edit-equip-nome').value;
+        const valor = tr.querySelector('.edit-equip-valor').value;
+        const tipoOferta = list.find(e => e.id === id).tipo_oferta;
+        const campoValor = tipoOferta === 'locacao' ? 'valor_mensal' : 'valor_venda';
+        const res = await csAtualizarEquipamento(id, { equipamento: nome, [campoValor]: valor || null });
+        alert(res.ok ? 'Anuncio atualizado.' : 'Erro: ' + res.error);
       });
     });
   }
@@ -455,12 +486,32 @@ document.addEventListener('DOMContentLoaded', async function(){
       card.className = 'card';
       card.style.cssText = 'text-align:left;margin-bottom:14px;';
       card.innerHTML = `
-        <p style="white-space:pre-wrap;">${p.conteudo}</p>
+        <textarea class="edit-post-conteudo" data-id="${p.id}" rows="3" style="margin-bottom:8px;">${p.conteudo}</textarea>
         ${p.imagem_url ? `<img src="${p.imagem_url}" style="width:100%;max-width:360px;border-radius:var(--radius-sm);margin:8px 0;">` : ''}
         <p class="hint">Nota media: ${media.media_geral || 'sem avaliacoes ainda'} (${media.total_avaliacoes} avaliacao(oes))</p>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="btn btn-dark btn-sm btn-salvar-post" data-id="${p.id}">Salvar alteracao</button>
+          <button class="btn btn-outline btn-sm btn-excluir-post" data-id="${p.id}">Excluir</button>
+        </div>
       `;
       wrap.appendChild(card);
     }
+
+    wrap.querySelectorAll('.btn-salvar-post').forEach(btn => {
+      btn.addEventListener('click', async function(){
+        const novoConteudo = wrap.querySelector(`.edit-post-conteudo[data-id="${this.dataset.id}"]`).value;
+        const res = await csAtualizarPublicacao(this.dataset.id, { conteudo: novoConteudo });
+        alert(res.ok ? 'Post atualizado.' : 'Erro: ' + res.error);
+      });
+    });
+    wrap.querySelectorAll('.btn-excluir-post').forEach(btn => {
+      btn.addEventListener('click', async function(){
+        if(!confirm('Excluir este post?')) return;
+        const res = await csExcluirPublicacao(this.dataset.id);
+        if(!res.ok){ alert('Erro: '+res.error); return; }
+        renderMeusPosts();
+      });
+    });
   }
 
   renderMeusAnuncios();
@@ -951,6 +1002,12 @@ async function csCriarPublicacao(conteudo, imagemFile){
 
 async function csExcluirPublicacao(id){
   const { error } = await csClient.from('publicacoes').delete().eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
+async function csAtualizarPublicacao(id, fields){
+  const { error } = await csClient.from('publicacoes').update(fields).eq('id', id);
   if(error) return { ok:false, error: error.message };
   return { ok:true };
 }

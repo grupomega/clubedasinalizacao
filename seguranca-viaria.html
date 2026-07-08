@@ -903,6 +903,12 @@ async function csExcluirPublicacao(id){
   return { ok:true };
 }
 
+async function csAtualizarPublicacao(id, fields){
+  const { error } = await csClient.from('publicacoes').update(fields).eq('id', id);
+  if(error) return { ok:false, error: error.message };
+  return { ok:true };
+}
+
 async function csObterMediaPost(postId){
   const { data, error } = await csClient.rpc('obter_media_post', { p_post_id: postId });
   if(error){ console.error(error); return { media_geral: null, total_avaliacoes: 0 }; }
