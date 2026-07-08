@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Comercial — Grupo MEGA | Apresentação BF</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --mega-laranja:     #E8520A;
+  --mega-laranja-cl:  #F4885A;
+  --mega-laranja-bg:  #FFF3EE;
+  --mega-cinza-esc:   #1E1E1E;
+  --mega-cinza-med:   #3A3A3A;
+  --mega-cinza-sub:   #5A5A5A;
+  --mega-cinza-bdr:   #D0D0D0;
+  --mega-cinza-bg:    #F5F5F5;
+  --mega-branco:      #FFFFFF;
+  --mega-verde:       #1A7A3C;
+  --mega-verde-cl:    #D4EDDA;
+  --mega-vermelho:    #C0392B;
+  --mega-vermelho-cl: #FADBD8;
+  --mega-amarelo:     #D4890A;
+  --mega-amarelo-cl:  #FEF3CD;
+  --mega-azul:        #1A4A6E;
+  --mega-azul-cl:     #D1E8F5;
+  --mega-roxo:        #5C2A7E;
+  --mega-roxo-cl:     #EAD9F7;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg: 16px;
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.10);
+  --shadow-deep: 0 8px 32px rgba(0,0,0,0.18);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--mega-cinza-bg);
+  color: var(--mega-cinza-esc);
+  font-size: 14px;
+  min-width: 1280px;
+}
+
+/* HEADER */
+header {
+  background: var(--mega-cinza-esc);
+  border-bottom: 3px solid var(--mega-laranja);
+  padding: 18px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-brand { display: flex; align-items: baseline; gap: 16px; }
+.brand-name { font-family: var(--font-display); font-size: 32px; font-weight: 800; color: var(--mega-laranja); letter-spacing: 3px; }
+.brand-sub { font-family: var(--font-display); font-size: 14px; color: #888; letter-spacing: 2px; }
+.header-meta { font-family: var(--font-mono); font-size: 12px; color: #666; text-align: right; line-height: 1.6; }
+.header-meta span { color: var(--mega-laranja); font-weight: 600; }
+
+/* NAV TABS */
+.nav-tabs {
+  background: var(--mega-cinza-med);
+  display: flex;
+  gap: 2px;
+  padding: 0 40px;
+  border-bottom: 1px solid #444;
+}
+.nav-tab {
+  padding: 12px 24px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #888;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-tab.active { color: var(--mega-laranja); border-bottom-color: var(--mega-laranja); }
+.nav-tab:hover:not(.active) { color: #ccc; }
+
+/* MAIN */
+main { padding: 32px 40px; }
+
+/* SECTION */
+.section { display: none; }
+.section.active { display: block; }
+
+/* SECTION HEADER */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: var(--mega-cinza-esc);
+  color: #FFF;
+  border-left: 5px solid var(--mega-laranja);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  border-radius: 0 4px 4px 0;
+}
+.section-header.green { border-left-color: var(--mega-verde); }
+.section-header.blue  { border-left-color: var(--mega-azul); }
+.section-header.amber { border-left-color: var(--mega-amarelo); }
+.section-header.roxo  { border-left-color: var(--mega-roxo); }
+
+/* KPI GRID */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 32px; }
+.kpi-card {
+  background: var(--mega-cinza-med);
+  border-left: 4px solid var(--mega-laranja);
+  padding: 20px 18px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s;
+}
+.kpi-card:hover { transform: translateY(-2px); }
+.kpi-card.green { border-left-color: var(--mega-verde); }
+.kpi-card.blue  { border-left-color: var(--mega-azul); }
+.kpi-card.amber { border-left-color: var(--mega-amarelo); }
+.kpi-card.red   { border-left-color: var(--mega-vermelho); }
+.kpi-card.roxo  { border-left-color: var(--mega-roxo); }
+.kpi-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #999;
+  display: block;
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--mega-branco);
+  line-height: 1;
+  display: block;
+  margin-bottom: 6px;
+}
+.kpi-value.money { font-size: 24px; font-family: var(--font-mono); }
+.kpi-delta { font-size: 11px; font-family: var(--font-body); }
+.kpi-delta.pos { color: #1A7A3C; }
+.kpi-delta.neg { color: #C0392B; }
+.kpi-delta.neu { color: #888; }
+
+/* BADGE */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge-proposta    { background: var(--mega-azul-cl); color: var(--mega-azul); }
+.badge-cadastro    { background: var(--mega-amarelo-cl); color: var(--mega-amarelo); }
+.badge-portfolio   { background: var(--mega-cinza-bg); color: var(--mega-cinza-sub); border: 1px solid var(--mega-cinza-bdr); }
+.badge-homologado  { background: var(--mega-verde-cl); color: var(--mega-verde); }
+.badge-projeto     { background: var(--mega-roxo-cl); color: var(--mega-roxo); }
+.badge-aguardando  { background: var(--mega-amarelo-cl); color: var(--mega-amarelo); }
+.badge-critico     { background: var(--mega-vermelho-cl); color: var(--mega-vermelho); }
+.badge-hot         { background: #FFDDC1; color: #8B3A00; }
+
+/* GRID 2-COL */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+
+/* CARD */
+.card {
+  background: var(--mega-branco);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.card-full { width: 100%; }
+
+/* TABLE */
+.mega-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mega-table thead tr { background: var(--mega-cinza-esc); color: #FFF; }
+.mega-table thead th {
+  padding: 11px 14px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+.mega-table tbody tr:nth-child(even) { background: #FAFAFA; }
+.mega-table tbody tr:hover { background: var(--mega-laranja-bg); }
+.mega-table tbody td { padding: 9px 14px; border-bottom: 1px solid #EBEBEB; vertical-align: middle; }
+.col-money { font-family: var(--font-mono); text-align: right; font-weight: 600; }
+.col-right { text-align: right; }
+
+/* PIPELINE FUNNEL */
+.funnel { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 24px; }
+.funnel-stage {
+  text-align: center;
+  padding: 20px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.funnel-stage:hover { transform: translateY(-3px); }
+.funnel-stage .stage-n {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  display: block;
+}
+.funnel-stage .stage-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  display: block;
+  font-weight: 700;
+}
+.funnel-stage .stage-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+  font-weight: 600;
+}
+.stage-1 { background: var(--mega-cinza-bg); color: var(--mega-cinza-sub); }
+.stage-2 { background: var(--mega-amarelo-cl); color: var(--mega-amarelo); }
+.stage-3 { background: #E8EAF6; color: #3949AB; }
+.stage-4 { background: var(--mega-verde-cl); color: var(--mega-verde); }
+.stage-5 { background: var(--mega-roxo-cl); color: var(--mega-roxo); }
+.stage-6 { background: var(--mega-azul-cl); color: var(--mega-azul); }
+
+/* PRODUTO CARDS */
+.produto-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.produto-card {
+  background: var(--mega-branco);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  border-top: 4px solid var(--mega-laranja);
+}
+.produto-card.svert { border-top-color: #1A4A6E; }
+.produto-card.shoriz { border-top-color: #5C2A7E; }
+.produto-card.defensas { border-top-color: #C0392B; }
+.produto-card.servicos { border-top-color: #1A7A3C; }
+.produto-header {
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid #EEE;
+}
+.produto-nome {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.produto-body { padding: 14px 18px; }
+.produto-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #F5F5F5; }
+.produto-row:last-child { border: none; }
+.produto-key { font-size: 11px; color: var(--mega-cinza-sub); }
+.produto-val { font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+
+/* TIPO CLIENTE */
+.tipo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.tipo-card {
+  background: var(--mega-branco);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.tipo-header {
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tipo-nome {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mega-branco);
+}
+.tipo-count {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--mega-branco);
+  opacity: 0.85;
+}
+.th-conc { background: var(--mega-azul); }
+.th-const { background: var(--mega-cinza-med); }
+.th-outros { background: var(--mega-roxo); }
+.tipo-body { padding: 14px 18px; }
+.tipo-item { font-size: 12px; color: var(--mega-cinza-sub); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+.tipo-item::before { content: '—'; color: var(--mega-cinza-bdr); }
+
+/* HIGHLIGHT ROW */
+tr.hot-row td { background: #FFFBE6 !important; }
+tr.hot-row td:first-child { border-left: 3px solid var(--mega-laranja); }
+
+/* TR OPORTUNIDADES */
+.tr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.tr-card {
+  background: var(--mega-branco);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.tr-header {
+  background: var(--mega-cinza-esc);
+  padding: 14px 20px;
+  border-left: 5px solid var(--mega-laranja);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tr-header.green { border-left-color: var(--mega-verde); }
+.tr-header.amber { border-left-color: var(--mega-amarelo); }
+.tr-nome { font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--mega-branco); letter-spacing: 1px; text-transform: uppercase; }
+.tr-body { padding: 16px 20px; }
+.tr-row { display: flex; gap: 12px; padding: 5px 0; border-bottom: 1px solid #F0F0F0; align-items: flex-start; }
+.tr-row:last-child { border: none; }
+.tr-key { font-size: 11px; color: #999; min-width: 90px; padding-top: 1px; text-transform: uppercase; font-family: var(--font-display); letter-spacing: 1px; }
+.tr-val { font-size: 12px; color: var(--mega-cinza-esc); font-weight: 500; flex: 1; }
+
+/* ALERT BOX */
+.alert {
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  border-left: 4px solid;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.alert-warning { background: var(--mega-amarelo-cl); border-color: var(--mega-amarelo); color: var(--mega-amarelo); }
+.alert-danger   { background: var(--mega-vermelho-cl); border-color: var(--mega-vermelho); color: var(--mega-vermelho); }
+.alert-success  { background: var(--mega-verde-cl); border-color: var(--mega-verde); color: var(--mega-verde); }
+.alert-info     { background: var(--mega-azul-cl); border-color: var(--mega-azul); color: var(--mega-azul); }
+.alert-icon { font-size: 18px; }
+.alert-text { color: var(--mega-cinza-esc); }
+
+/* VALUE BIG */
+.val-big { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+.val-green { color: var(--mega-verde); }
+.val-red   { color: var(--mega-vermelho); }
+.val-amber { color: var(--mega-amarelo); }
+
+/* PROGRESS BAR */
+.prog-bar-wrap { height: 8px; background: #E8E8E8; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.prog-bar { height: 100%; border-radius: 4px; background: var(--mega-laranja); transition: width 0.8s ease; }
+
+/* PRINT */
+@media print {
+  .nav-tabs { display: none; }
+  .section { display: block !important; page-break-before: always; }
+  .section:first-of-type { page-break-before: auto; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <span class="brand-name">GRUPO MEGA</span>
+    <span class="brand-sub">INTELIGÊNCIA COMERCIAL · APRESENTAÇÃO BF · JUN/2026</span>
+  </div>
+  <div class="header-meta">
+    REFERÊNCIA: RELATÓRIO SEMANA 25–29/MAI/2026<br>
+    ELABORADO POR: <span>REINALDO JUNIOR — CEO</span>
+  </div>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showTab('visao-geral')">📊 Visão Geral</div>
+  <div class="nav-tab" onclick="showTab('pipeline')">🔄 Pipeline Completo</div>
+  <div class="nav-tab" onclick="showTab('por-produto')">📦 Por Produto</div>
+  <div class="nav-tab" onclick="showTab('por-cliente')">🏢 Por Tipo de Cliente</div>
+  <div class="nav-tab" onclick="showTab('oportunidades-tr')">🎯 Oportunidades TR</div>
+  <div class="nav-tab" onclick="showTab('projetos')">💼 Projetos em Andamento</div>
+</div>
+
+<main>
+
+<!-- ========== VISÃO GERAL ========== -->
+<div id="visao-geral" class="section active">
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Pipeline Total (Proposta)</span>
+      <span class="kpi-value money">R$ 166,5M</span>
+      <span class="kpi-delta pos">14 projetos ativos</span>
+    </div>
+    <div class="kpi-card green">
+      <span class="kpi-label">Construtoras Prospectadas</span>
+      <span class="kpi-value">71</span>
+      <span class="kpi-delta neu">47 ativos + 24 portfolio enviado</span>
+    </div>
+    <div class="kpi-card blue">
+      <span class="kpi-label">Concessionárias Mapeadas</span>
+      <span class="kpi-value">40+</span>
+      <span class="kpi-delta neu">Grupos com múltiplas concessões</span>
+    </div>
+    <div class="kpi-card amber">
+      <span class="kpi-label">Cadastros em Homologação</span>
+      <span class="kpi-value">4</span>
+      <span class="kpi-delta neu">IBH, A.Yoshii, Carioca, FBS</span>
+    </div>
+    <div class="kpi-card amber">
+      <span class="kpi-label">Cadastros Homologados</span>
+      <span class="kpi-value">6</span>
+      <span class="kpi-delta pos">Grupo Ápia, Motiva, Ecovias, EPR, Arteris + Rota das Bandeiras</span>
+    </div>
+    <div class="kpi-card red">
+      <span class="kpi-label">Maior Proposta Única</span>
+      <span class="kpi-value money">R$ 38M</span>
+      <span class="kpi-delta neg">Ecovias – Sinalização Horiz.</span>
+    </div>
+  </div>
+
+  <div class="section-header">📊 Funil Comercial — Estado da Base</div>
+  <div class="funnel">
+    <div class="funnel-stage stage-1">
+      <span class="stage-n">13</span>
+      <span class="stage-label">Portfólio Enviado</span>
+      <span class="stage-val">Contato inicial</span>
+    </div>
+    <div class="funnel-stage stage-2">
+      <span class="stage-n">4</span>
+      <span class="stage-label">Buscando Cadastro</span>
+      <span class="stage-val">Em negociação acesso</span>
+    </div>
+    <div class="funnel-stage stage-3">
+      <span class="stage-n">6</span>
+      <span class="stage-label">Cad. Homologado</span>
+      <span class="stage-val">Apto a receber TR</span>
+    </div>
+    <div class="funnel-stage stage-5">
+      <span class="stage-n">1</span>
+      <span class="stage-label">Projeto em Orçamento</span>
+      <span class="stage-val">CNL Novo Litoral – Vert.</span>
+    </div>
+    <div class="funnel-stage stage-6">
+      <span class="stage-n">10</span>
+      <span class="stage-label">Proposta Enviada</span>
+      <span class="stage-val">R$ 166,5M em jogo</span>
+    </div>
+    <div class="funnel-stage stage-4">
+      <span class="stage-n">0</span>
+      <span class="stage-label">Contratos Fechados</span>
+      <span class="stage-val">Meta: fechar Rota Mogiana</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-header green">⚠️ Alertas Prioritários</div>
+      <div class="alert alert-danger"><span class="alert-icon">🔴</span><span class="alert-text"><strong>EPR:</strong> Histórico negativo com a marca. Contato Maurício foi hostil. Necessário visita presencial Reinaldo + Rafael para reverter impressão.</span></div>
+      <div class="alert alert-warning"><span class="alert-icon">🟡</span><span class="alert-text"><strong>Rota Mogiana:</strong> Proposta R$17,5M aguardando diretores. Hamilton passou pela equalização. Follow-up quinta-feira — janela estreita.</span></div>
+      <div class="alert alert-warning"><span class="alert-icon">🟡</span><span class="alert-text"><strong>SPMAR / Janaina:</strong> Projeto PLACAS TUNEL (2465) finalizando. Manter presença para capturar demanda imediata.</span></div>
+      <div class="alert alert-info"><span class="alert-icon">🔵</span><span class="alert-text"><strong>COSAG / Andrade Gutierrez:</strong> Rafael alinhando com responsável de sinalização — janela curta de follow-up.</span></div>
+      <div class="alert alert-info"><span class="alert-icon">🔵</span><span class="alert-text"><strong>IBH (Linha 17-Ouro metrô):</strong> Ellys muito receptivo, demanda confirmada. Retorno em 10 dias.</span></div>
+    </div>
+    <div>
+      <div class="section-header blue">🎯 Oportunidades Imediatas (Fast-Cycle)</div>
+      <div class="card">
+        <table class="mega-table">
+          <thead>
+            <tr><th>Cliente</th><th>Produto/Serviço</th><th>Status</th><th>Urgência</th></tr>
+          </thead>
+          <tbody>
+            <tr class="hot-row"><td><strong>FOKO</strong></td><td>Sinalização Provisória</td><td><span class="badge badge-proposta">Proposta R$60K</span></td><td><span style="color:var(--mega-laranja)">🔥 Alta</span></td></tr>
+            <tr class="hot-row"><td><strong>TMRC</strong></td><td>Projeto de defensas (escopo no escritório)</td><td><span class="badge badge-projeto">Projeto Enviado</span></td><td><span style="color:var(--mega-laranja)">🔥 Alta</span></td></tr>
+            <tr class="hot-row"><td><strong>Castilho Eng.</strong></td><td>Sin. Vertical + Horizontal</td><td><span class="badge badge-proposta">Proposta R$5,3M</span></td><td><span style="color:var(--mega-laranja)">🔥 Alta</span></td></tr>
+            <tr><td><strong>Appogi</strong></td><td>Obras em Orlândia/Pitangueiras</td><td><span class="badge badge-portfolio">Portfólio Enviado</span></td><td>Média</td></tr>
+            <tr><td><strong>CNL Novo Litoral</strong></td><td>Defensas metálicas</td><td><span class="badge badge-proposta">Proposta R$14,4M</span></td><td>Média</td></tr>
+            <tr><td><strong>Afonso França</strong></td><td>Licitações em andamento</td><td><span class="badge badge-portfolio">Retornar em 2 sem.</span></td><td>Média</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== PIPELINE COMPLETO ========== -->
+<div id="pipeline" class="section">
+  <div class="section-header">🔄 Pipeline Completo — Todas as Oportunidades Ativas</div>
+  
+  <div class="card card-full">
+    <table class="mega-table">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Tipo Cliente</th>
+          <th>Contato</th>
+          <th>Produtos de Interesse</th>
+          <th>Status Pipeline</th>
+          <th>Valor Estimado</th>
+          <th>Próximo Passo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- CONCESSÕES -->
+        <tr class="hot-row"><td><strong>Rota Mogiana</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Hamilton Chambrone / Renato</td><td>Placas Zero Hora · Sin. Vertical · Sin. Horizontal</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 17.579.043</td><td>Follow-up QUINTA — aguarda diretores</td></tr>
+        <tr><td><strong>CNL Novo Litoral</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Yoshio / Guilherme</td><td>Defensas metálicas · Sin. Vertical</td><td><span class="badge badge-proposta">Proposta Enviada + Orçamento Vert.</span></td><td class="col-money val-green">R$ 14.470.585</td><td>Aguardar projeto Sinalização Vertical</td></tr>
+        <tr><td><strong>SPMAR</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Janaina Mathias</td><td>Sistema de sinalização de emergência · Placas Tunel</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 196.468</td><td>Acompanhar finalização projeto 2465</td></tr>
+        <tr><td><strong>Elovias</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Carlos Henrique</td><td>Boneco · Placas de Sinalização</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-amber">R$ 108.368</td><td>Suprimentos — manter contato</td></tr>
+        <tr><td><strong>Ecovias</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>—</td><td>Sin. Vertical · Sin. Horizontal · Defensas</td><td><span class="badge badge-homologado">Cadastro Homologado</span></td><td class="col-money val-green">R$ 118.843.891</td><td>TR em análise — maior oportunidade</td></tr>
+        <tr><td><strong>Rota das Bandeiras</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>—</td><td>Sinalização</td><td><span class="badge badge-homologado">Cadastro Homologado</span></td><td class="col-money val-amber">—</td><td>Aguardar demanda</td></tr>
+        <tr><td><strong>EPR</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Maurício (hostil) / Rafael / Camila</td><td>Sinalização / Obras</td><td><span class="badge badge-homologado">Cadastro Homologado</span></td><td class="col-money val-amber">—</td><td>🔴 VISITA PRESENCIAL — Reinaldo + Rafael</td></tr>
+        <tr><td><strong>Arteris</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Lucas / Rodrigo</td><td>Defensas e barreira rígida</td><td><span class="badge badge-homologado">Cadastro Homologado</span></td><td class="col-money val-amber">—</td><td>Rodrigo passa contato compradores</td></tr>
+        <tr><td><strong>RENEA</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Carolina</td><td>Defensas metálicas · Obras GO-454</td><td><span class="badge badge-proposta">Proposta R$7,3M + Portfólio</span></td><td class="col-money val-green">R$ 7.293.215</td><td>Aguarda avanço interno do projeto</td></tr>
+        <tr><td><strong>Motiva/CCR</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Rafael Martins</td><td>Sinalização</td><td><span class="badge badge-homologado">Cadastro Homologado</span></td><td class="col-money val-amber">—</td><td>Retorno próxima semana</td></tr>
+        <tr><td><strong>Nova 364</strong></td><td><span class="badge badge-proposta">Concessionária</span></td><td>Fernando</td><td>Sinalização</td><td><span class="badge badge-portfolio">Portfólio Enviado</span></td><td class="col-money val-amber">—</td><td>Aguarda retorno depto. comercial</td></tr>
+        <!-- CONSTRUTORAS -->
+        <tr class="hot-row"><td><strong>Ecovias Capixaba</strong></td><td><span class="badge badge-andamento">Construtora/Sub</span></td><td>—</td><td>Sin. Vertical + Horizontal (Norte + Sul)</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 42.302.643</td><td>Maior proposta em construtoras</td></tr>
+        <tr class="hot-row"><td><strong>Castilho Engenharia</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Regiane</td><td>Sin. Vertical + Horizontal</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 5.316.194</td><td>Contato via WhatsApp confirmado</td></tr>
+        <tr><td><strong>IBHS</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>—</td><td>Sinalização Horizontal</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 2.651.364</td><td>Acompanhar retorno</td></tr>
+        <tr><td><strong>CETENCO</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>—</td><td>Sin. Horizontal · Instalação</td><td><span class="badge badge-proposta">Em andamento</span></td><td class="col-money val-green">R$ 52.927</td><td>Projeto em execução</td></tr>
+        <tr><td><strong>FOKO</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Sandy</td><td>Sin. Provisória · Fechamento de Pista</td><td><span class="badge badge-proposta">Proposta R$60K</span></td><td class="col-money val-green">R$ 60.000</td><td>🔥 Alta receptividade — fechar rápido</td></tr>
+        <tr><td><strong>TMRC</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Matheus</td><td>Defensas · Restauração Pavimento</td><td><span class="badge badge-proposta">Projeto Enviado</span></td><td class="col-money">ADM/Hora</td><td>Projeto enviado — aguarda confirmação</td></tr>
+        <tr><td><strong>Carioca Engenharia</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Carlos Henrique</td><td>Sinalização</td><td><span class="badge badge-cadastro">Cad. Solicitado NIMBI</span></td><td class="col-money val-amber">—</td><td>Item Alvará faltando no NIMBI</td></tr>
+        <tr><td><strong>A.Yoshii</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>—</td><td>Sinalização</td><td><span class="badge badge-cadastro">Cad. Solicitado</span></td><td class="col-money val-amber">—</td><td>Homologação em andamento</td></tr>
+        <tr><td><strong>FBS Construtora</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Ander</td><td>Sinalização</td><td><span class="badge badge-cadastro">Cad. Solicitado</span></td><td class="col-money val-amber">—</td><td>Pré-cadastro recebido, portfólio enviado ao diretor</td></tr>
+        <tr><td><strong>IBH Eixo SP</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Sandy / Ellys</td><td>Sin. Horizontal + Vertical · Metrô L17</td><td><span class="badge badge-cadastro">Cad. Solicitado</span></td><td class="col-money val-amber">—</td><td>Reunião marcada segunda 15h30 — demanda metrô L17</td></tr>
+        <tr><td><strong>Appogi</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Eder Souza / Luiz Porto</td><td>Obras rodoviárias</td><td><span class="badge badge-portfolio">Portfólio Enviado</span></td><td class="col-money val-amber">—</td><td>Obras em Orlândia e Pitangueiras</td></tr>
+        <tr><td><strong>COSAG/Andrade Gutierrez</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Isabela/Rafael/Luciana</td><td>Sinalização</td><td><span class="badge badge-portfolio">Portfólio Enviado</span></td><td class="col-money val-amber">—</td><td>🔥 Rafael alinhando com resp. sinalização — URGENTE</td></tr>
+        <!-- OUTROS -->
+        <tr><td><strong>AGIS</strong></td><td><span class="badge" style="background:#E8EAF6;color:#3949AB">Outro/Metrô</span></td><td>Ellys</td><td>Sin. Linha 17-Ouro metrô</td><td><span class="badge badge-portfolio">Material Enviado</span></td><td class="col-money val-amber">—</td><td>Retorno em 10 dias</td></tr>
+        <tr><td><strong>Engibras</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Silvimar</td><td>Sinalização</td><td><span class="badge badge-portfolio">Portfólio Enviado</span></td><td class="col-money val-amber">—</td><td>2 contatos de suprimentos enviados</td></tr>
+        <tr><td><strong>Azevedo &amp; Travassos</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Amália RJ / Dimas SP</td><td>Sinalização</td><td><span class="badge badge-portfolio">Portfólio Enviado</span></td><td class="col-money val-amber">—</td><td>Dimas: mais informações solicitadas</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== POR PRODUTO ========== -->
+<div id="por-produto" class="section">
+  <div class="section-header amber">📦 Análise por Produto — Pipeline e Demanda</div>
+
+  <div class="produto-grid">
+    <div class="produto-card svert">
+      <div class="produto-header" style="background:var(--mega-azul-cl)">
+        <div class="produto-nome" style="color:var(--mega-azul)">🪧 Sinalização Vertical</div>
+      </div>
+      <div class="produto-body">
+        <div class="produto-row"><span class="produto-key">Propostas Ativas</span><span class="produto-val val-green">5 projetos</span></div>
+        <div class="produto-row"><span class="produto-key">Valor Pipeline</span><span class="produto-val val-green">R$ 50,4M+</span></div>
+        <div class="produto-row"><span class="produto-key">Clientes</span><span class="produto-val">Rota Mogiana, CNL Novo Litoral, Ecovias, Castilho, RENEA</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo Médio</span><span class="produto-val">30–60 dias (concessionárias)</span></div>
+        <div class="produto-row"><span class="produto-key">Potencial TR</span><span class="produto-val val-amber">🟡 ALTO — Ecovias + EPR</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:80%;background:var(--mega-azul)"></div></div>
+      </div>
+    </div>
+    <div class="produto-card shoriz">
+      <div class="produto-header" style="background:var(--mega-roxo-cl)">
+        <div class="produto-nome" style="color:var(--mega-roxo)">🛣️ Sinalização Horizontal</div>
+      </div>
+      <div class="produto-body">
+        <div class="produto-row"><span class="produto-key">Propostas Ativas</span><span class="produto-val val-green">6 projetos</span></div>
+        <div class="produto-row"><span class="produto-key">Valor Pipeline</span><span class="produto-val val-green">R$ 89,1M+</span></div>
+        <div class="produto-row"><span class="produto-key">Clientes</span><span class="produto-val">Ecovias Capixaba (maior), Rota Mogiana, IBHS, Castilho, CETENCO</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo Médio</span><span class="produto-val">30–90 dias</span></div>
+        <div class="produto-row"><span class="produto-key">Potencial TR</span><span class="produto-val val-green">🟢 ALTÍSSIMO — maior proposta individual</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:95%;background:var(--mega-roxo)"></div></div>
+      </div>
+    </div>
+    <div class="produto-card defensas">
+      <div class="produto-header" style="background:var(--mega-vermelho-cl)">
+        <div class="produto-nome" style="color:var(--mega-vermelho)">🛡️ Defensas Metálicas / EPS</div>
+      </div>
+      <div class="produto-body">
+        <div class="produto-row"><span class="produto-key">Propostas Ativas</span><span class="produto-val val-green">3 projetos</span></div>
+        <div class="produto-row"><span class="produto-key">Valor Pipeline</span><span class="produto-val val-green">R$ 20,1M+</span></div>
+        <div class="produto-row"><span class="produto-key">Clientes</span><span class="produto-val">CNL Novo Litoral, Arteris (Lucas), TMRC, RENEA</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo Médio</span><span class="produto-val">45–90 dias</span></div>
+        <div class="produto-row"><span class="produto-key">Potencial TR</span><span class="produto-val val-amber">🟡 MÉDIO-ALTO — crescente</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:45%;background:var(--mega-vermelho)"></div></div>
+      </div>
+    </div>
+    <div class="produto-card servicos">
+      <div class="produto-header" style="background:var(--mega-verde-cl)">
+        <div class="produto-nome" style="color:var(--mega-verde)">🔧 Serviços / Provisória / Outros</div>
+      </div>
+      <div class="produto-body">
+        <div class="produto-row"><span class="produto-key">Propostas Ativas</span><span class="produto-val val-green">4 projetos</span></div>
+        <div class="produto-row"><span class="produto-key">Valor Pipeline</span><span class="produto-val val-amber">R$ 196K + ADM</span></div>
+        <div class="produto-row"><span class="produto-key">Clientes</span><span class="produto-val">SPMAR (emergência), FOKO (provisória), TMRC (ADM hora), Elovias (boneco)</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo Médio</span><span class="produto-val">7–15 dias ✅ Fast-cycle</span></div>
+        <div class="produto-row"><span class="produto-key">Potencial TR</span><span class="produto-val val-green">🟢 RÁPIDO — gera caixa imediato</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:25%;background:var(--mega-verde)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header blue">📊 Mix de Pipeline por Produto</div>
+  <div class="card card-full">
+    <table class="mega-table">
+      <thead>
+        <tr><th>Produto</th><th>Qtd Projetos</th><th>Valor Total Pipeline</th><th>% do Total</th><th>Ciclo de Venda</th><th>Sem Licitação?</th><th>Prioridade</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Sinalização Horizontal</strong></td><td class="col-right">6</td><td class="col-money val-green">R$ 89.100.000</td><td class="col-right">53,5%</td><td>30–90 dias</td><td>✅ Construtoras sim</td><td><span class="badge badge-proposta">Alta</span></td></tr>
+        <tr><td><strong>Sinalização Vertical</strong></td><td class="col-right">5</td><td class="col-money val-green">R$ 50.400.000</td><td class="col-right">30,3%</td><td>30–60 dias</td><td>✅ Construtoras sim</td><td><span class="badge badge-proposta">Alta</span></td></tr>
+        <tr><td><strong>Defensas / EPS</strong></td><td class="col-right">3</td><td class="col-money val-green">R$ 20.100.000</td><td class="col-right">12,1%</td><td>45–90 dias</td><td>✅ Construtoras sim</td><td><span class="badge badge-cadastro">Média</span></td></tr>
+        <tr><td><strong>Serviços / Provisória</strong></td><td class="col-right">4</td><td class="col-money val-amber">R$ 256.000+</td><td class="col-right">0,2%</td><td>7–15 dias</td><td>✅ Sempre</td><td><span class="badge badge-homologado">Fast-Cycle ★</span></td></tr>
+        <tr><td><strong>Restauração Pavimento</strong></td><td class="col-right">1</td><td class="col-money">ADM/Hora</td><td class="col-right">—</td><td>Contínuo</td><td>✅ Sub-empreitada</td><td><span class="badge badge-andamento">Oportunidade</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== POR TIPO CLIENTE ========== -->
+<div id="por-cliente" class="section">
+  <div class="section-header roxo">🏢 Análise por Tipo de Cliente</div>
+
+  <div class="tipo-grid">
+    <div class="tipo-card">
+      <div class="tipo-header th-conc">
+        <span class="tipo-nome">Concessionárias</span>
+        <span class="tipo-count">11</span>
+      </div>
+      <div class="tipo-body">
+        <div class="produto-row"><span class="produto-key">Pipeline</span><span class="produto-val val-green">R$ 140M+</span></div>
+        <div class="produto-row"><span class="produto-key">Cadastros OK</span><span class="produto-val">Ecovias, Motiva, EPR, Arteris, Rota das Bandeiras</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo TR</span><span class="produto-val val-amber">60–180 dias</span></div>
+        <div class="produto-row"><span class="produto-key">Alerta</span><span class="produto-val val-red">Demora + exige licitação</span></div>
+        <div style="margin-top:12px">
+          <div class="tipo-item">Rota Mogiana — R$17,5M proposta</div>
+          <div class="tipo-item">Ecovias — R$118M em propostas</div>
+          <div class="tipo-item">CNL Novo Litoral — R$14,5M</div>
+          <div class="tipo-item">RENEA — R$7,3M</div>
+          <div class="tipo-item">EPR — Revisar relacionamento</div>
+        </div>
+      </div>
+    </div>
+    <div class="tipo-card">
+      <div class="tipo-header th-const">
+        <span class="tipo-nome">Construtoras Civis / Rodoviárias</span>
+        <span class="tipo-count">47+</span>
+      </div>
+      <div class="tipo-body">
+        <div class="produto-row"><span class="produto-key">Pipeline Direto</span><span class="produto-val val-green">R$ 50M+</span></div>
+        <div class="produto-row"><span class="produto-key">Sem Licitação</span><span class="produto-val val-green">✅ SIM — compra direta</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo Venda</span><span class="produto-val val-green">7–15 dias ★ Fast-cycle</span></div>
+        <div class="produto-row"><span class="produto-key">Alvo Principal</span><span class="produto-val">Placas de obras + sinalização provisória</span></div>
+        <div style="margin-top:12px">
+          <div class="tipo-item">Ecovias Capixaba — R$42M (maior)</div>
+          <div class="tipo-item">Castilho — R$5,3M (quente)</div>
+          <div class="tipo-item">IBHS — R$2,6M</div>
+          <div class="tipo-item">FOKO — R$60K (fast-cycle urgente)</div>
+          <div class="tipo-item">71 empresas mapeadas</div>
+        </div>
+      </div>
+    </div>
+    <div class="tipo-card">
+      <div class="tipo-header th-outros">
+        <span class="tipo-nome">Outros (Metrô, Ferrovia)</span>
+        <span class="tipo-count">2</span>
+      </div>
+      <div class="tipo-body">
+        <div class="produto-row"><span class="produto-key">Pipeline</span><span class="produto-val val-amber">Emergente</span></div>
+        <div class="produto-row"><span class="produto-key">Ciclo</span><span class="produto-val val-amber">45–90 dias</span></div>
+        <div class="produto-row"><span class="produto-key">Diferencial</span><span class="produto-val">Sinalização metrô = nicho premium</span></div>
+        <div style="margin-top:12px">
+          <div class="tipo-item">AGIS — Linha 17-Ouro (SP)</div>
+          <div class="tipo-item">Aurizon — contato via WhatsApp</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header green">📊 Distribuição por Tipo de Cliente — Pipeline</div>
+  <div class="card card-full">
+    <table class="mega-table">
+      <thead>
+        <tr><th>Tipo</th><th>Empresas Ativas</th><th>Portfolio Enviado</th><th>Cad. Homologado</th><th>Propostas Enviadas</th><th>Valor Pipeline</th><th>Estratégia</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Concessionárias Federais</strong></td><td class="col-right">6</td><td class="col-right">2</td><td class="col-right">4</td><td class="col-right">4</td><td class="col-money val-green">R$ 132M+</td><td>TR — ciclo longo mas tickets altos</td></tr>
+        <tr><td><strong>Concessionárias Estaduais (SP)</strong></td><td class="col-right">5</td><td class="col-right">2</td><td class="col-right">2</td><td class="col-right">3</td><td class="col-money val-green">R$ 15M+</td><td>Fase implantação = oportunidade imediata</td></tr>
+        <tr><td><strong>Construtoras Rodoviárias</strong></td><td class="col-right">30+</td><td class="col-right">20+</td><td class="col-right">0</td><td class="col-right">5</td><td class="col-money val-green">R$ 48M+</td><td>⭐ Placas obras — sem licitação — FOCO</td></tr>
+        <tr><td><strong>Construtoras Civis / Outras</strong></td><td class="col-right">17+</td><td class="col-right">10+</td><td class="col-right">0</td><td class="col-right">2</td><td class="col-money val-amber">R$ 3M+</td><td>Sinalização provisória — fast-cycle</td></tr>
+        <tr><td><strong>Metrô / Ferrovia</strong></td><td class="col-right">2</td><td class="col-right">1</td><td class="col-right">0</td><td class="col-right">0</td><td class="col-money val-amber">Emergente</td><td>Nicho premium — monitorar</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== OPORTUNIDADES TR ========== -->
+<div id="oportunidades-tr" class="section">
+  <div class="section-header">🎯 Oportunidades de Termo de Referência (TR)</div>
+
+  <div class="alert alert-info"><span class="alert-icon">💡</span><span class="alert-text"><strong>Estratégia TR:</strong> Concessionárias em fase de implantação geram demanda imediata via TR. Abordagem: engenheiros de canteiro (não suprimentos). Construtoras subcontratadas por concessionárias NÃO exigem licitação pública — ciclo 7–15 dias.</span></div>
+
+  <div class="tr-grid">
+    <div class="tr-card">
+      <div class="tr-header">
+        <span class="tr-nome">🟢 Ecovias — TR Imediato</span>
+        <span class="badge badge-homologado">Cadastro Ativo</span>
+      </div>
+      <div class="tr-body">
+        <div class="tr-row"><span class="tr-key">Tipo TR</span><span class="tr-val">Sinalização Vertical · Horizontal · Defensas</span></div>
+        <div class="tr-row"><span class="tr-key">Valor Proposto</span><span class="tr-val val-green"><strong>R$ 118.843.891</strong> (5 TRs)</span></div>
+        <div class="tr-row"><span class="tr-key">Status</span><span class="tr-val">Cadastro homologado ✅ — aguardando abertura formal</span></div>
+        <div class="tr-row"><span class="tr-key">Urgência</span><span class="tr-val"><span class="badge badge-homologado">ALTA — maior oportunidade</span></span></div>
+        <div class="tr-row"><span class="tr-key">Ação</span><span class="tr-val">Manter relacionamento ativo. Açucena preparar orçamentos técnicos.</span></div>
+      </div>
+    </div>
+    <div class="tr-card">
+      <div class="tr-header amber">
+        <span class="tr-nome">🟡 Rota Mogiana — TR Pendente Diretor</span>
+        <span class="badge badge-proposta">Proposta Enviada</span>
+      </div>
+      <div class="tr-body">
+        <div class="tr-row"><span class="tr-key">Tipo TR</span><span class="tr-val">Placas Zero Hora · Sin. Vertical · Sin. Horizontal</span></div>
+        <div class="tr-row"><span class="tr-key">Valor</span><span class="tr-val val-green"><strong>R$ 17.579.043</strong></span></div>
+        <div class="tr-row"><span class="tr-key">Status</span><span class="tr-val">Hamilton fez equalização — na mesa dos diretores</span></div>
+        <div class="tr-row"><span class="tr-key">Urgência</span><span class="tr-val"><span class="badge badge-hot">🔥 CRÍTICO — follow-up QUINTA</span></span></div>
+        <div class="tr-row"><span class="tr-key">Ação</span><span class="tr-val">Contato Hamilton quinta-feira. Não deixar esfriar.</span></div>
+      </div>
+    </div>
+    <div class="tr-card">
+      <div class="tr-header">
+        <span class="tr-nome">🔵 CNL Novo Litoral — 2 TRs</span>
+        <span class="badge badge-projeto">Projeto Recebido</span>
+      </div>
+      <div class="tr-body">
+        <div class="tr-row"><span class="tr-key">TR 1</span><span class="tr-val">Defensas metálicas + EPS — <strong>R$ 14.470.585</strong> ✅ Proposta enviada</span></div>
+        <div class="tr-row"><span class="tr-key">TR 2</span><span class="tr-val">Sinalização Vertical — projeto recebido em orçamento</span></div>
+        <div class="tr-row"><span class="tr-key">Concessão</span><span class="tr-val">SP-055/098 — Em implantação 2024–2054 (ARTESP)</span></div>
+        <div class="tr-row"><span class="tr-key">Urgência</span><span class="tr-val"><span class="badge badge-proposta">Alta — concessão nova fase obras</span></span></div>
+        <div class="tr-row"><span class="tr-key">Ação</span><span class="tr-val">Açucena: finalizar orçamento Sinalização Vertical urgente.</span></div>
+      </div>
+    </div>
+    <div class="tr-card">
+      <div class="tr-header amber">
+        <span class="tr-nome">🟡 RENEA — Obras GO-454</span>
+        <span class="badge badge-proposta">Proposta Enviada</span>
+      </div>
+      <div class="tr-body">
+        <div class="tr-row"><span class="tr-key">Objeto TR</span><span class="tr-val">Obras Complementares Rodovia GO-454</span></div>
+        <div class="tr-row"><span class="tr-key">Valor</span><span class="tr-val val-green"><strong>R$ 7.293.215</strong></span></div>
+        <div class="tr-row"><span class="tr-key">Defensas</span><span class="tr-val">Defensas metálicas — portfólio enviado</span></div>
+        <div class="tr-row"><span class="tr-key">Status</span><span class="tr-val">Carolina confirmou: ainda sem avanço interno</span></div>
+        <div class="tr-row"><span class="tr-key">Ação</span><span class="tr-val">Agendar próximo follow-up em 2 semanas. Não pressionar.</span></div>
+      </div>
+    </div>
+    <div class="tr-card">
+      <div class="tr-header" style="border-left-color:var(--mega-vermelho)">
+        <span class="tr-nome">🔴 EPR — Recuperar Relacionamento</span>
+        <span class="badge badge-critico">Relac. Negativo</span>
+      </div>
+      <div class="tr-body">
+        <div class="tr-row"><span class="tr-key">Concessões EPR</span><span class="tr-val">7 concessões (federais) — parceiro estratégico</span></div>
+        <div class="tr-row"><span class="tr-key">Problema</span><span class="tr-val">Maurício (compras) hostil. Histórico negativo com Vias do Café.</span></div>
+        <div class="tr-row"><span class="tr-key">Potencial</span><span class="tr-val val-green">Alto — 7 concessões federais em operação/implantação</span></div>
+        <div class="tr-row"><span class="tr-key">Plano</span><span class="tr-val"><strong>Visita presencial CEO + Rafael Ribeiro.</strong> Mostrar nova estrutura MEGA.</span></div>
+        <div class="tr-row"><span class="tr-key">Prazo</span><span class="tr-val"><span class="badge badge-critico">Agendar JUN/2026</span></span></div>
+      </div>
+    </div>
+    <div class="tr-card">
+      <div class="tr-header green">
+        <span class="tr-nome">🟢 Construtoras em Concessões Novas</span>
+        <span class="badge badge-homologado">Fast-Cycle</span>
+      </div>
+      <div class="tr-body">
+        <div class="tr-row"><span class="tr-key">Estratégia</span><span class="tr-val">Concessões em implantação geram demanda via construtoras subcontratadas</span></div>
+        <div class="tr-row"><span class="tr-key">Alvos</span><span class="tr-val">Eixo SP (1.273km), PR Vias, EPR Iguaçu, Nova 381</span></div>
+        <div class="tr-row"><span class="tr-key">Abordagem</span><span class="tr-val">Engenheiro de canteiro (não suprimentos da concessionária)</span></div>
+        <div class="tr-row"><span class="tr-key">Sem licitação</span><span class="tr-val val-green">✅ Compra direta pela construtora — 7 a 15 dias</span></div>
+        <div class="tr-row"><span class="tr-key">Ação</span><span class="tr-val">Rogério + Fernando: mapear canteiros ativos Eixo SP e PR Vias</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header amber">📋 Matriz de Priorização TR — Curto Prazo</div>
+  <div class="card card-full">
+    <table class="mega-table">
+      <thead>
+        <tr><th>Prioridade</th><th>Cliente</th><th>TR / Produto</th><th>Valor</th><th>Fase</th><th>Bloqueio</th><th>Responsável</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hot-row"><td><span class="badge badge-critico">P1 — ESTA SEMANA</span></td><td><strong>Rota Mogiana</strong></td><td>Placas Zero Hora + Vert. + Horiz.</td><td class="col-money val-green">R$ 17,5M</td><td>Aguarda diretores</td><td>Nenhum interno</td><td>Rogério — Hamilton QUINTA</td></tr>
+        <tr class="hot-row"><td><span class="badge badge-critico">P1 — ESTA SEMANA</span></td><td><strong>IBH / AGIS</strong></td><td>Sin. Horizontal + Vertical (Metrô L17)</td><td class="col-money val-amber">A definir</td><td>Reunião segunda 15h30</td><td>Nenhum</td><td>Fernando — não perder reunião</td></tr>
+        <tr><td><span class="badge badge-proposta">P2 — JUN/26</span></td><td><strong>CNL Novo Litoral</strong></td><td>Sinalização Vertical (orçamento)</td><td class="col-money val-amber">A calcular</td><td>Projeto em orçamento</td><td>Açucena (bottleneck)</td><td>Açucena — prioridade máxima</td></tr>
+        <tr><td><span class="badge badge-proposta">P2 — JUN/26</span></td><td><strong>Ecovias</strong></td><td>Sin. Horiz. (1ª Revisão)</td><td class="col-money val-green">R$ 37,9M</td><td>Proposta enviada</td><td>Aprovação cliente</td><td>Manter contato</td></tr>
+        <tr><td><span class="badge badge-cadastro">P3 — JUL/26</span></td><td><strong>EPR</strong></td><td>Vários — 7 concessões</td><td class="col-money val-amber">Potencial alto</td><td>Relacionamento negativo</td><td>Imagem da marca</td><td>Reinaldo + Rafael — visita presencial</td></tr>
+        <tr><td><span class="badge badge-cadastro">P3 — JUL/26</span></td><td><strong>Carioca Engenharia</strong></td><td>Sinalização</td><td class="col-money val-amber">—</td><td>NIMBI pendente (Alvará)</td><td>Item Alvará no portal</td><td>Katiene — resolver Alvará NIMBI</td></tr>
+        <tr><td><span class="badge badge-portfolio">P4 — AGO/26</span></td><td><strong>Arteris</strong></td><td>Defensas e barreira rígida</td><td class="col-money val-amber">—</td><td>Rodrigo passando contatos</td><td>Sem acesso compradores</td><td>Aguardar contatos de Rodrigo</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== PROJETOS EM ANDAMENTO ========== -->
+<div id="projetos" class="section">
+  <div class="section-header green">💼 Projetos com Proposta Enviada — Valor Total: R$ 166.572.057</div>
+
+  <div class="card card-full">
+    <table class="mega-table">
+      <thead>
+        <tr><th>Cliente</th><th>Tipo</th><th>Projeto</th><th>Prazo</th><th>Status</th><th>Valor</th><th>Observação</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hot-row"><td><strong>Ecovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sin. Horiz. Capixaba Norte</td><td>17/04/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 20.929.107</td><td>Maior lote Norte</td></tr>
+        <tr class="hot-row"><td><strong>Ecovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sin. Horiz. Capixaba Sul</td><td>17/04/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 21.373.536</td><td>Maior lote Sul</td></tr>
+        <tr class="hot-row"><td><strong>Ecovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Defensas Metálicas</td><td>12/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 5.713.057</td><td>—</td></tr>
+        <tr class="hot-row"><td><strong>Ecovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sinalização Vertical</td><td>12/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 32.846.977</td><td>—</td></tr>
+        <tr class="hot-row"><td><strong>Ecovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sin. Horizontal (1ª Revisão)</td><td>19/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 37.981.210</td><td>Maior proposta única</td></tr>
+        <tr class="hot-row"><td><strong>Rota Mogiana</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Placas Zero Hora</td><td>19/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 1.076.093</td><td>Fast-cycle</td></tr>
+        <tr class="hot-row"><td><strong>Rota Mogiana</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sinalização Vertical</td><td>29/04/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 8.267.750</td><td>🔥 Aguarda diretores</td></tr>
+        <tr class="hot-row"><td><strong>Rota Mogiana</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sinalização Horizontal</td><td>29/04/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 8.235.200</td><td>🔥 Aguarda diretores</td></tr>
+        <tr><td><strong>CNL Novo Litoral</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Defensas + EPS</td><td>11/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 14.470.585</td><td>—</td></tr>
+        <tr><td><strong>CNL Novo Litoral</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sinalização Vertical</td><td>01/06/2026</td><td><span class="badge badge-aguardando">Aguardando Proposta</span></td><td class="col-money val-amber">—</td><td>Projeto em orçamento Açucena</td></tr>
+        <tr><td><strong>RENEA</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Obras GO-454</td><td>07/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 7.293.215</td><td>Sem avanço interno ainda</td></tr>
+        <tr><td><strong>SPMAR</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Sinalização de Emergência</td><td>30/04/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-amber">R$ 196.468</td><td>Projeto 2465 finalizando</td></tr>
+        <tr><td><strong>Castilho Engenharia</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Sin. Vertical + Horizontal</td><td>22/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 5.316.194</td><td>Contato ativo</td></tr>
+        <tr><td><strong>IBHS</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Sinalização Horizontal</td><td>20/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-green">R$ 2.651.364</td><td>—</td></tr>
+        <tr><td><strong>Elovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Boneco</td><td>19/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-amber">R$ 11.400</td><td>—</td></tr>
+        <tr><td><strong>Elovias</strong></td><td><span class="badge badge-proposta">Concess.</span></td><td>Placas de Sinalização</td><td>18/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-amber">R$ 96.968</td><td>—</td></tr>
+        <tr><td><strong>FOKO</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Sinalização Provisória</td><td>26/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-amber">R$ 60.000</td><td>🔥 Fast-cycle — fechar urgente</td></tr>
+        <tr><td><strong>CETENCO</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Sin. Horizontal + Instalação</td><td>28/05/2026</td><td><span class="badge badge-andamento">Em andamento</span></td><td class="col-money val-amber">R$ 52.927</td><td>—</td></tr>
+        <tr><td><strong>TMRC</strong></td><td><span class="badge badge-andamento">Construtora</span></td><td>Restauração de Pavimento</td><td>20/05/2026</td><td><span class="badge badge-proposta">Proposta Enviada</span></td><td class="col-money val-amber">ADM/Hora</td><td>Escopo no escritório</td></tr>
+        <tr style="background:#F0F8F0 !important; font-weight:700">
+          <td colspan="5" style="text-align:right; padding:12px 14px; font-family:var(--font-display); font-size:13px; letter-spacing:1px; text-transform:uppercase;">VALOR TOTAL PIPELINE</td>
+          <td class="col-money" style="font-size:16px; color:var(--mega-verde)">R$ 166.572.057</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Atualiza data
+document.querySelector('.header-meta').innerHTML = `
+  REFERÊNCIA: RELATÓRIO SEMANA 25–29/MAI/2026<br>
+  ELABORADO POR: <span>REINALDO JUNIOR — CEO</span> · ${new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'})}
+`;
+</script>
+</body>
+</html>
